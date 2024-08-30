@@ -1,0 +1,330 @@
+const modal = document.getElementById('album-art-modal');
+const modalImg = document.getElementById('modal-img');
+const closeModalBtn = document.getElementById('close-modal');
+
+// Function to show the modal with dynamic image
+function showModal(imageUrl) {
+    modalImg.src = imageUrl; // Set the image source
+    modal.style.display = 'flex'; // Show the modal
+}
+
+// Function to hide the modal
+function hideModal() {
+    modal.style.display = 'none'; // Hide the modal
+}
+
+// Event listener for close button
+closeModalBtn.addEventListener('click', hideModal);
+
+class AudioPlayer {
+    constructor() {
+        this.audioElement = new Audio();
+        this.queue = [];
+        this.currentTrackIndex = 0;
+        this.isPlaying = false;
+        this.songsDisplayed = false;  // Flag to track if songs have been displayed
+        this.currentTime = 0;
+        this.isResuming = false;
+        this.audioElement.addEventListener('ended', () => this.playNext());
+        this.audioElement.addEventListener('timeupdate', () => this.updateProgressBar());
+        this.audioElement.addEventListener('loadedmetadata', () => this.updateTotalTime());
+        this.audioElement.addEventListener('ended', () => this.nextTrack());
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        document.getElementById('play-pause-btn').addEventListener('click', () => this.togglePlayPause());
+        document.getElementById('next-btn').addEventListener('click', () => this.playNext());
+        document.getElementById('prev-btn').addEventListener('click', () => this.playPrevious());
+        document.getElementById('volume-control').addEventListener('input', (e) => this.setVolume(e.target.value));
+        document.getElementById('progress-bar').parentElement.addEventListener('click', (e) => this.seek(e));
+        document.getElementById('search-input').addEventListener('input', (e) => this.searchTracks(e.target.value));
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                this.togglePlayPause();
+            } else if (e.code === 'ArrowRight' && e.ctrlKey) {
+                this.playNext();
+            } else if (e.code === 'ArrowLeft' && e.ctrlKey) {
+                this.playPrevious();
+            }
+        });
+    }
+
+    uploadSongs(files) {
+        const fileArray = Array.from(files);
+        const totalFiles = fileArray.length;
+
+        if (totalFiles > 0) {
+            this.showUploadProgress();
+        }
+
+        const promises = fileArray.map((file, index) => {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    this.addToQueue(file);
+                    this.updateUploadProgress(index + 1, totalFiles);
+                    resolve();
+                }, 100);
+            });
+        });
+
+        Promise.all(promises).then(() => {
+            this.hideUploadProgress();
+            if (!this.songsDisplayed) {
+                this.updateQueueDisplay();
+                this.songsDisplayed = true;  // Set flag to true after displaying songs
+
+                if (this.queue.length > 0) {
+                    this.play();  // Automatically start playing if songs are available
+                }
+            }
+        });
+    }
+    showUploadProgress() {
+        document.getElementById('upload-progress').classList.remove('hidden');
+        document.getElementById('upload-progress').classList.add('show');
+    }
+
+    hideUploadProgress() {
+        document.getElementById('upload-progress').classList.add('hidden');
+        document.getElementById('upload-progress').classList.remove('show');
+    }
+
+    updateUploadProgress(current, total) {
+        const progressPercentage = Math.round((current / total) * 100);
+        document.getElementById('upload-progress-text').textContent = `${progressPercentage}%`;
+    }
+
+    addToQueue(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                jsmediatags.read(file, {
+                    onSuccess: (tag) => {
+                        const picture = tag.tags.picture;
+                        const image = picture ? `data:${picture.format};base64,${this.arrayBufferToBase64(picture.data)}` : 'https://via.placeholder.com/150';
+                        const track = {
+                            file: file,
+                            name: tag.tags.title || file.name.replace(/\.[^/.]+$/, ""),
+                            artist: tag.tags.artist || "Unknown Artist",
+                            duration: null,
+                            image: image
+                        };
+                        this.queue.push(track);
+                        resolve();
+                    },
+                    onError: (error) => {
+                        console.error("Error reading metadata:", error);
+                        const track = {
+                            file: file,
+                            name: file.name.replace(/\.[^/.]+$/, ""),
+                            artist: "Unknown Artist",
+                            duration: null,
+                            image: 'https://via.placeholder.com/150'
+                        };
+                        this.queue.push(track);
+                        resolve();
+                    }
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 8192; // Use a smaller chunk size if needed to avoid stack overflow.
+
+    // Process the buffer in chunks
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+
+    return window.btoa(binary);
+}
+
+
+    play() {
+        if (this.queue.length > 0) {
+            const currentTrack = this.queue[this.currentTrackIndex];
+            this.audioElement.src = URL.createObjectURL(currentTrack.file);
+
+            // Set the playback position based on whether resuming or playing a new track
+            if (this.isResuming) {
+                this.audioElement.currentTime = this.currentTime;
+            } else {
+                this.audioElement.currentTime = 0;
+            }
+
+            this.audioElement.play()
+                .then(() => {
+                    this.isPlaying = true;
+                    this.updateNowPlaying();
+                    this.updatePlayPauseButton();
+                    this.updateQueueDisplay();
+                })
+                .catch(error => {
+                    console.error("Error playing audio:", error);
+                    this.isPlaying = false;
+                    this.updatePlayPauseButton();
+                });
+            // Reset resume flag after starting playback
+            this.isResuming = false;
+        }
+    }
+
+    pause() {
+        this.audioElement.pause();
+        this.isPlaying = false;
+        this.currentTime = this.audioElement.currentTime; // Store the current playback position
+        this.updatePlayPauseButton();
+    }
+
+    togglePlayPause() {
+        if (this.isPlaying) {
+            this.pause();
+        } else {
+            this.isResuming = true;
+            this.play();
+        }
+    }
+
+
+    playNext() {
+        if (this.currentTrackIndex < this.queue.length - 1) {
+            this.currentTrackIndex++;
+            this.isResuming = false;
+            this.play();
+        }
+    }
+
+    playPrevious() {
+        if (this.currentTrackIndex > 0) {
+            this.currentTrackIndex--;
+            this.play();
+        }
+    }
+
+    setVolume(volume) {
+        this.audioElement.volume = volume;
+    }
+
+    seek(event) {
+        const progressBar = document.getElementById('progress-bar').parentElement;
+        const percent = event.offsetX / progressBar.offsetWidth;
+        this.audioElement.currentTime = percent * this.audioElement.duration;
+    }
+
+    updateProgressBar() {
+        const progress = (this.audioElement.currentTime / this.audioElement.duration) * 100;
+        document.getElementById('progress-bar').style.width = `${progress}%`;
+        document.getElementById('current-time').textContent = this.formatTime(this.audioElement.currentTime);
+    }
+
+    updateTotalTime() {
+        document.getElementById('total-time').textContent = this.formatTime(this.audioElement.duration);
+    }
+
+    formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    updateNowPlaying() {
+        const currentTrack = this.queue[this.currentTrackIndex];
+        document.getElementById('now-playing-title').textContent = currentTrack.name;
+        document.getElementById('now-playing-artist').textContent = currentTrack.artist;
+        document.getElementById('now-playing-img').src = currentTrack.image;
+    }
+
+    // Function to create queue items and set up click event
+    updateQueueDisplay(filteredTracks = this.queue) {
+        const queueContainer = document.querySelector('.queue-container');
+        queueContainer.innerHTML = '';
+        filteredTracks.forEach((track, index) => {
+            const trackElement = document.createElement('div');
+            trackElement.className = `bg-[#292938] p-4 rounded-xl flex items-center justify-between ${index === this.currentTrackIndex ? 'border-2 border-blue-500' : ''}`;
+            trackElement.innerHTML = `
+                <div class="flex items-center space-x-4">
+                    <img src="${track.image}" alt="Album art" class="w-12 h-12 object-cover rounded" data-image="${track.image}">
+                    <div>
+                        <p class="font-medium">${track.name}</p>
+                        <p class="text-sm text-gray-400">${track.artist}</p>
+                    </div>
+                </div>
+                <button class="play-track-btn bg-blue-500 hover:bg-blue-600 rounded-full p-2" data-index="${index}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    </svg>
+                </button>
+            `;
+            queueContainer.appendChild(trackElement);
+            
+             // Add click event to track image
+            const imgElement = trackElement.querySelector('img');
+            imgElement.addEventListener('click', () => {
+                showModal(track.image);
+            });
+
+        });
+
+        document.querySelectorAll('.play-track-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const index = parseInt(e.currentTarget.dataset.index);
+                this.currentTrackIndex = index;
+                this.play();
+            });
+        });
+    }
+
+    updatePlayPauseButton() {
+        const button = document.getElementById('play-pause-btn');
+        button.innerHTML = this.isPlaying
+            ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+    }
+
+    searchTracks(query) {
+        if (query.trim() === '') {
+            this.updateQueueDisplay();
+            return;
+        }
+
+        const filteredTracks = this.queue.filter(track => 
+            track.name.toLowerCase().includes(query.toLowerCase()) || 
+            track.artist.toLowerCase().includes(query.toLowerCase())
+        );
+
+        if (filteredTracks.length === 0) {
+            const queueContainer = document.querySelector('.queue-container');
+            queueContainer.innerHTML = '<p class="text-center text-gray-400 mt-4">No matching tracks found</p>';
+        } else {
+            this.updateQueueDisplay(filteredTracks);
+        }
+    }
+}
+
+const player = new AudioPlayer();
+document.addEventListener('DOMContentLoaded', () => {
+    player;
+    // Add drag and drop functionality
+    const dropZone = document.body;
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('bg-blue-100', 'bg-opacity-50');
+    });
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('bg-blue-100', 'bg-opacity-50');
+    });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-blue-100', 'bg-opacity-50');
+        player.uploadSongs(e.dataTransfer.files);
+    });
+});
+document.getElementById('file-input').addEventListener('change', (e) => player.uploadSongs(e.target.files));
