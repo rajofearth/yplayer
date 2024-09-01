@@ -165,14 +165,16 @@ class AudioPlayer {
 play() {
     if (this.queue.length > 0) {
         const currentTrack = this.queue[this.currentTrackIndex];
-        if (this.isPaused && this.audioElement.src === URL.createObjectURL(currentTrack.file) && this.resumed == false) {
-            // Resume playback
-            this.resumed = true;
+        const isSameTrack = this.audioElement.src === URL.createObjectURL(currentTrack.file);
+
+        if (this.isPaused && isSameTrack) {
+            // Resume playback from the current position
             this.audioElement.currentTime = this.currentTime;
             this.audioElement.play()
                 .then(() => {
                     this.isPlaying = true;
                     this.isPaused = false;
+                    this.resumed = true;
                     this.updateNowPlaying();
                     this.updatePlayPauseButton();
                     this.updateQueueDisplay();
@@ -192,13 +194,14 @@ play() {
         } else {
             // Start a new track
             this.audioElement.src = URL.createObjectURL(currentTrack.file);
-            this.currentTime = 0;
+            this.currentTime = 0; // Start from the beginning for a new track
             this.audioElement.currentTime = this.currentTime;
-            
+
             this.audioElement.play()
                 .then(() => {
                     this.isPlaying = true;
                     this.isPaused = false;
+                    this.resumed = false; // Reset resumed flag
                     this.updateNowPlaying();
                     this.updatePlayPauseButton();
                     this.updateQueueDisplay();
@@ -218,18 +221,21 @@ play() {
         }
     }
 }
+
+
 pause() {
     this.audioElement.pause();
     this.isPlaying = false;
     this.isPaused = true;
-    this.resumed = false;
-    this.currentTime = this.audioElement.currentTime;
+    this.resumed = false; // Reset resumed flag
+    this.currentTime = this.audioElement.currentTime; // Save current time
     this.updatePlayPauseButton();
     if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = 'paused';
     }
     this.updatePlayPauseButtonListed();
 }
+
 
 togglePlayPause() {
     if (this.isPlaying) {
