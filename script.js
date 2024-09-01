@@ -1,21 +1,3 @@
-const modal = document.getElementById('album-art-modal');
-const modalImg = document.getElementById('modal-img');
-const closeModalBtn = document.getElementById('close-modal');
-
-// Function to show the modal with dynamic image
-function showModal(imageUrl) {
-    modalImg.src = imageUrl; // Set the image source
-    modal.style.display = 'flex'; // Show the modal
-}
-
-// Function to hide the modal
-function hideModal() {
-    modal.style.display = 'none'; // Hide the modal
-}
-
-// Event listener for close button
-closeModalBtn.addEventListener('click', hideModal);
-
 class AudioPlayer {
     constructor() {
         this.audioElement = new Audio();
@@ -47,6 +29,31 @@ class AudioPlayer {
         document.getElementById('volume-control').addEventListener('input', (e) => this.setVolume(e.target.value));
         document.getElementById('progress-bar').parentElement.addEventListener('click', (e) => this.seek(e));
         document.getElementById('search-input').addEventListener('input', (e) => this.searchTracks(e.target.value));
+        document.addEventListener("DOMContentLoaded", function () {
+            // Select the necessary elements
+            const albumArt = document.getElementById("now-playing-img");
+            const modal = document.getElementById("album-art-modal");
+            const modalImg = document.getElementById("modal-img");
+            const closeModalBtn = document.getElementById("close-modal");
+        
+            // Show the modal when the album art is clicked
+            albumArt.addEventListener("click", () => {
+                modalImg.src = albumArt.src; // Set the modal image to the album art source
+                modal.classList.remove("hidden"); // Show the modal
+            });
+        
+            // Hide the modal when the close button is clicked
+            closeModalBtn.addEventListener("click", () => {
+                modal.classList.add("hidden"); // Hide the modal
+            });
+        
+            // Optional: Hide the modal when clicking outside the modal content
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) {
+                    modal.classList.add("hidden");
+                }
+            });
+        });
         
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -60,7 +67,7 @@ class AudioPlayer {
             }
         });
     }
-
+    
     uploadSongs(files) {
         const fileArray = Array.from(files);
         const totalFiles = fileArray.length;
@@ -159,32 +166,53 @@ class AudioPlayer {
 play() {
     if (this.queue.length > 0) {
         const currentTrack = this.queue[this.currentTrackIndex];
-        
-        if (!this.isPaused) {
+
+        // Check if the audio is paused and the current track is already loaded
+        if (this.isPaused && this.audioElement.src === URL.createObjectURL(currentTrack.file)) {
+            // If paused, just resume playback
+            this.audioElement.play()
+                .then(() => {
+                    this.isPlaying = true;
+                    this.isPaused = false;
+                    this.updateNowPlaying();
+                    this.updatePlayPauseButton();
+                    this.updateQueueDisplay();
+
+                    if ('mediaSession' in navigator) {
+                        this.updateMediaSessionMetadata();
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
+                })
+                .catch(error => {
+                    console.error("Error resuming audio:", error);
+                    this.isPlaying = false;
+                    this.updatePlayPauseButton();
+                });
+        } else {
             // If not paused, start a new track
             this.audioElement.src = URL.createObjectURL(currentTrack.file);
             this.audioElement.currentTime = 0;
+            
+            // Play the audio
+            this.audioElement.play()
+                .then(() => {
+                    this.isPlaying = true;
+                    this.isPaused = false;
+                    this.updateNowPlaying();
+                    this.updatePlayPauseButton();
+                    this.updateQueueDisplay();
+
+                    if ('mediaSession' in navigator) {
+                        this.updateMediaSessionMetadata();
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
+                })
+                .catch(error => {
+                    console.error("Error playing audio:", error);
+                    this.isPlaying = false;
+                    this.updatePlayPauseButton();
+                });
         }
-        
-        // Play the audio
-        this.audioElement.play()
-            .then(() => {
-                this.isPlaying = true;
-                this.isPaused = false;
-                this.updateNowPlaying();
-                this.updatePlayPauseButton();
-                this.updateQueueDisplay();
-                
-                if ('mediaSession' in navigator) {
-                    this.updateMediaSessionMetadata();
-                    navigator.mediaSession.playbackState = 'playing';
-                }
-            })
-            .catch(error => {
-                console.error("Error playing audio:", error);
-                this.isPlaying = false;
-                this.updatePlayPauseButton();
-            });
     }
 }
 
