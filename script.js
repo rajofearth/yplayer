@@ -4,17 +4,14 @@ class AudioPlayer {
         this.queue = [];
         this.currentTrackIndex = 0;
         this.isPlaying = false;
+        this.isPaused = false;
         this.songsDisplayed = false;
         this.currentTime = 0;
-        this.isResuming = false;
 
         this.audioElement.addEventListener('ended', () => this.playNext());
         this.audioElement.addEventListener('timeupdate', () => this.updateProgressBar());
         this.audioElement.addEventListener('loadedmetadata', () => this.updateTotalTime());
-        // Remove the duplicate 'ended' event listener that was calling the undefined 'nextTrack' method
-        // this.audioElement.addEventListener('ended', () => this.nextTrack());
 
-        // Wait for the DOM to be fully loaded before setting up event listeners
         document.addEventListener('DOMContentLoaded', () => {
             this.setupEventListeners();
         });
@@ -39,7 +36,11 @@ class AudioPlayer {
         if (playPauseBtn) playPauseBtn.addEventListener('click', () => this.togglePlayPause());
         if (nextBtn) nextBtn.addEventListener('click', () => this.playNext());
         if (prevBtn) prevBtn.addEventListener('click', () => this.playPrevious());
-        if (volumeControl) volumeControl.addEventListener('input', (e) => this.setVolume(e.target.value));
+        if (volumeControl) {
+            volumeControl.addEventListener('input', (e) => this.setVolume(e.target.value));
+            // Set initial volume
+            this.setVolume(volumeControl.value);
+        }
         if (progressBarContainer) progressBarContainer.addEventListener('click', (e) => this.seek(e));
         if (searchInput) searchInput.addEventListener('input', (e) => this.searchTracks(e.target.value));
 
@@ -55,7 +56,6 @@ class AudioPlayer {
             }
         });
     }
-
     uploadSongs(files) {
         const fileArray = Array.from(files);
         const totalFiles = fileArray.length;
@@ -165,9 +165,8 @@ play() {
     if (this.queue.length > 0) {
         const currentTrack = this.queue[this.currentTrackIndex];
 
-        // Check if the audio is paused and the current track is already loaded
         if (this.isPaused && this.audioElement.src === URL.createObjectURL(currentTrack.file)) {
-            // If paused, just resume playback
+            // Resume playback
             this.audioElement.play()
                 .then(() => {
                     this.isPlaying = true;
@@ -189,11 +188,10 @@ play() {
                     this.updatePlayPauseButton();
                 });
         } else {
-            // If not paused, start a new track
+            // Start a new track
             this.audioElement.src = URL.createObjectURL(currentTrack.file);
-            this.audioElement.currentTime = 0;
+            this.audioElement.currentTime = this.currentTime;
             
-            // Play the audio
             this.audioElement.play()
                 .then(() => {
                     this.isPlaying = true;
@@ -217,27 +215,25 @@ play() {
         }
     }
 }
-
-    pause() {
-        this.audioElement.pause();
-        this.isPlaying = false;
-        this.isPaused = true;
-        this.currentTime = this.audioElement.currentTime; // Store the current playback position
-        this.updatePlayPauseButton();
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = 'paused';
-        }
-        this.updatePlayPauseButtonListed();
+pause() {
+    this.audioElement.pause();
+    this.isPlaying = false;
+    this.isPaused = true;
+    this.currentTime = this.audioElement.currentTime;
+    this.updatePlayPauseButton();
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
     }
+    this.updatePlayPauseButtonListed();
+}
 
-    togglePlayPause() {
-        if (this.isPlaying) {
-            this.pause();
-        } else {
-            this.isResuming = true;
-            this.play();
-        }
+togglePlayPause() {
+    if (this.isPlaying) {
+        this.pause();
+    } else {
+        this.play();
     }
+}
 
 
     playNext() {
@@ -258,7 +254,16 @@ play() {
     }
 
     setVolume(volume) {
-        this.audioElement.volume = volume;
+        // Convert the volume to a float between 0 and 1
+        const volumeFloat = parseFloat(volume);
+        this.audioElement.volume = volumeFloat;
+        
+        // Update the volume slider value
+        const volumeControl = document.getElementById('volume-control');
+        if (volumeControl) {
+            volumeControl.value = volume;
+        }
+
         // Update system volume (if supported)
         if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
             navigator.mediaSession.setPositionState({
@@ -426,6 +431,7 @@ updatePlayPauseButtonListed() {
 }
 
 const player = new AudioPlayer();
+// Set up drag and drop functionality
 document.body.addEventListener('dragover', (e) => {
     e.preventDefault();
     document.body.classList.add('bg-[#00ff00]/10');
@@ -441,6 +447,7 @@ document.body.addEventListener('drop', (e) => {
     player.uploadSongs(e.dataTransfer.files);
 });
 
+// Set up file input functionality
 const fileInput = document.getElementById('file-input');
 if (fileInput) {
     fileInput.addEventListener('change', (e) => player.uploadSongs(e.target.files));
