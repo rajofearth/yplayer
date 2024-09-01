@@ -4,14 +4,20 @@ class AudioPlayer {
         this.queue = [];
         this.currentTrackIndex = 0;
         this.isPlaying = false;
-        this.songsDisplayed = false;  // Flag to track if songs have been displayed
+        this.songsDisplayed = false;
         this.currentTime = 0;
         this.isResuming = false;
+
         this.audioElement.addEventListener('ended', () => this.playNext());
         this.audioElement.addEventListener('timeupdate', () => this.updateProgressBar());
         this.audioElement.addEventListener('loadedmetadata', () => this.updateTotalTime());
-        this.audioElement.addEventListener('ended', () => this.nextTrack());
-        this.setupEventListeners();
+        // Remove the duplicate 'ended' event listener that was calling the undefined 'nextTrack' method
+        // this.audioElement.addEventListener('ended', () => this.nextTrack());
+
+        // Wait for the DOM to be fully loaded before setting up event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            this.setupEventListeners();
+        });
 
         // Set up Media Session API
         if ('mediaSession' in navigator) {
@@ -23,38 +29,20 @@ class AudioPlayer {
     }
 
     setupEventListeners() {
-        document.getElementById('play-pause-btn').addEventListener('click', () => this.togglePlayPause());
-        document.getElementById('next-btn').addEventListener('click', () => this.playNext());
-        document.getElementById('prev-btn').addEventListener('click', () => this.playPrevious());
-        document.getElementById('volume-control').addEventListener('input', (e) => this.setVolume(e.target.value));
-        document.getElementById('progress-bar').parentElement.addEventListener('click', (e) => this.seek(e));
-        document.getElementById('search-input').addEventListener('input', (e) => this.searchTracks(e.target.value));
-        document.addEventListener("DOMContentLoaded", function () {
-            // Select the necessary elements
-            const albumArt = document.getElementById("now-playing-img");
-            const modal = document.getElementById("album-art-modal");
-            const modalImg = document.getElementById("modal-img");
-            const closeModalBtn = document.getElementById("close-modal");
-        
-            // Show the modal when the album art is clicked
-            albumArt.addEventListener("click", () => {
-                modalImg.src = albumArt.src; // Set the modal image to the album art source
-                modal.classList.remove("hidden"); // Show the modal
-            });
-        
-            // Hide the modal when the close button is clicked
-            closeModalBtn.addEventListener("click", () => {
-                modal.classList.add("hidden"); // Hide the modal
-            });
-        
-            // Optional: Hide the modal when clicking outside the modal content
-            modal.addEventListener("click", (e) => {
-                if (e.target === modal) {
-                    modal.classList.add("hidden");
-                }
-            });
-        });
-        
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const volumeControl = document.getElementById('volume-control');
+        const progressBarContainer = document.getElementById('progress-bar').parentElement;
+        const searchInput = document.getElementById('search-input');
+
+        if (playPauseBtn) playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+        if (nextBtn) nextBtn.addEventListener('click', () => this.playNext());
+        if (prevBtn) prevBtn.addEventListener('click', () => this.playPrevious());
+        if (volumeControl) volumeControl.addEventListener('input', (e) => this.setVolume(e.target.value));
+        if (progressBarContainer) progressBarContainer.addEventListener('click', (e) => this.seek(e));
+        if (searchInput) searchInput.addEventListener('input', (e) => this.searchTracks(e.target.value));
+
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
@@ -67,7 +55,7 @@ class AudioPlayer {
             }
         });
     }
-    
+
     uploadSongs(files) {
         const fileArray = Array.from(files);
         const totalFiles = fileArray.length;
@@ -90,27 +78,37 @@ class AudioPlayer {
             this.hideUploadProgress();
             if (!this.songsDisplayed) {
                 this.updateQueueDisplay();
-                this.songsDisplayed = true;  // Set flag to true after displaying songs
+                this.songsDisplayed = true;
 
                 if (this.queue.length > 0) {
-                    this.play();  // Automatically start playing if songs are available
+                    this.play();
                 }
             }
         });
     }
+
     showUploadProgress() {
-        document.getElementById('upload-progress').classList.remove('hidden');
-        document.getElementById('upload-progress').classList.add('show');
+        const uploadProgress = document.getElementById('upload-progress');
+        if (uploadProgress) {
+            uploadProgress.classList.remove('hidden');
+            uploadProgress.classList.add('show');
+        }
     }
 
     hideUploadProgress() {
-        document.getElementById('upload-progress').classList.add('hidden');
-        document.getElementById('upload-progress').classList.remove('show');
+        const uploadProgress = document.getElementById('upload-progress');
+        if (uploadProgress) {
+            uploadProgress.classList.add('hidden');
+            uploadProgress.classList.remove('show');
+        }
     }
 
     updateUploadProgress(current, total) {
         const progressPercentage = Math.round((current / total) * 100);
-        document.getElementById('upload-progress-text').textContent = `${progressPercentage}%`;
+        const uploadProgressText = document.getElementById('upload-progress-text');
+        if (uploadProgressText) {
+            uploadProgressText.textContent = `${progressPercentage}%`;
+        }
     }
 
     addToQueue(file) {
