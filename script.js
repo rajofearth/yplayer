@@ -219,6 +219,7 @@ play() {
     pause() {
         this.audioElement.pause();
         this.isPlaying = false;
+        this.isPaused = true;
         this.currentTime = this.audioElement.currentTime; // Store the current playback position
         this.updatePlayPauseButton();
         if ('mediaSession' in navigator) {
