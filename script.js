@@ -327,6 +327,7 @@ play() {
             `;
             queueContainer.appendChild(trackElement);
             updatePlayPauseButtonListed();
+            
             // Add click event to track image
             const imgElement = trackElement.querySelector('img');
             imgElement.addEventListener('click', () => {
@@ -338,6 +339,7 @@ play() {
             button.addEventListener('click', (e) => {
                 const index = parseInt(e.currentTarget.dataset.index);
                 this.currentTrackIndex = index;
+                updatePlayPauseButtonListed();
                 this.play();
             });
         });
