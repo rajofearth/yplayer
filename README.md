@@ -55,11 +55,6 @@ Visit the live site at [YPlayer](https://rajofearth.github.io/yplayer/).
 
 ## 📸 Screenshots
 
-### Desktop
-![image](https://github.com/user-attachments/assets/361e9e31-7823-469c-84b9-9562988089a5)
-#### Search
-![image](https://github.com/user-attachments/assets/ebbfe5f2-85eb-4ad0-bbd3-3e8fd633015c)
-### Mobile
 
 
 ## 🤝 Contributing
