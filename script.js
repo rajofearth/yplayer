@@ -426,21 +426,22 @@ updatePlayPauseButtonListed() {
 }
 
 const player = new AudioPlayer();
-document.addEventListener('DOMContentLoaded', () => {
-    player;
-    // Add drag and drop functionality
-    const dropZone = document.body;
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('bg-[#00ff00]/10');
-    });
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('bg-[#00ff00]/10');
-    });
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('bg-[#00ff00]/10');
-        player.uploadSongs(e.dataTransfer.files);
-    });
+document.body.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    document.body.classList.add('bg-[#00ff00]/10');
 });
-document.getElementById('file-input').addEventListener('change', (e) => player.uploadSongs(e.target.files));
+
+document.body.addEventListener('dragleave', () => {
+    document.body.classList.remove('bg-[#00ff00]/10');
+});
+
+document.body.addEventListener('drop', (e) => {
+    e.preventDefault();
+    document.body.classList.remove('bg-[#00ff00]/10');
+    player.uploadSongs(e.dataTransfer.files);
+});
+
+const fileInput = document.getElementById('file-input');
+if (fileInput) {
+    fileInput.addEventListener('change', (e) => player.uploadSongs(e.target.files));
+}
