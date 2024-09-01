@@ -15,32 +15,69 @@
     <meta name="theme-color" content="#ffffff">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        :root {
+            --bg-color: #001;
+            --text-color: #0f0;
+            --accent-color: #0f0;
+            --hover-color: #0c0;
+            --progress-bg-color: rgba(0, 255, 0, 0.2); /* Semi-transparent white */
+            --progress-fg-color: #0f0;
+            --queue-track-bg-color:rgba(0, 255, 0, 0.2);
+            --plyr-bg-color:#001;
+        }
+
+        .light-theme {
+            --bg-color: #ffffff;
+            --text-color: #006400;
+            --accent-color: #008000;
+            --hover-color: #00a000;
+            --progress-bg-color: rgba(0, 255, 0, 0.2); /* Semi-transparent dark green */
+            --progress-fg-color: #008000;
+            --queue-track-bg-color:rgba(0, 255, 0, 0.2);
+            --plyr-bg-color:linear-gradient(to top, rgba(0, 255, 0, 0.411), transparent);
+        }
+        .progress-container {
+            background-color: var(--progress-bg-color);
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        #progress-bar {
+            background-color: var(--progress-fg-color);
+            height: 100%;
+            width: 0;
+            transition: width 0.1s linear;
+        }
         body { 
             font-family: 'Courier New', monospace;
-            background-color: #001; 
-            color: #0f0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 0;
             line-height: 1.3;
             font-size: 16px;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         h1 { 
             font-size: 2.5em;
             text-align: center;
-            text-shadow: 0 0 10px #0f0;
+            text-shadow: 0 0 10px var(--accent-color);
             margin-bottom: 20px;
         }
 
         a {
-            color: #0f0;
+            color: var(--text-color);
             text-decoration: none;
-            border-bottom: 1px dashed #0f0;
+            border-bottom: 1px dashed var(--text-color);
         }
 
         a:hover {
-            text-shadow: 0 0 5px #0f0;
+            text-shadow: 0 0 5px var(--accent-color);
         }
 
         .container {
@@ -54,7 +91,7 @@
             overflow-y: auto;
             padding: 10px;
             border-radius: 8px;
-            border: 1px solid #0f0;
+            border: 1px solid var(--accent-color);
         }
         
         .queue-container::-webkit-scrollbar {
@@ -62,13 +99,21 @@
         }
 
         .queue-container::-webkit-scrollbar-thumb {
-            background-color: #0f0;
+            background-color: var(--accent-color);
             border-radius: 4px;
         }
 
         @media (max-width: 768px) {
             .queue-container {
-                padding-bottom: 5rem;
+                padding-bottom: 6rem;
+            }
+            #now-playing-img{
+                height: 60px;
+                width: 60px;
+            }    
+            #now-playing-title, #now-playing-artist{
+                align-self:left;
+                font-size: medium;
             }
         }
         #vol{
@@ -89,7 +134,7 @@
             appearance: none;
             width: 12px;
             height: 12px;
-            background: #0f0;
+            background: var(--accent-color);
             border-radius: 50%;
             cursor: pointer;
         }
@@ -97,17 +142,17 @@
         .volume-slider::-moz-range-thumb {
             width: 12px;
             height: 12px;
-            background: #0f0;
+            background: var(--accent-color);
             border-radius: 50%;
             cursor: pointer;
         }
 
         .volume-slider:hover::-webkit-slider-thumb {
-            box-shadow: 0 0 5px #0f0;
+            box-shadow: 0 0 5px var(--accent-color);
         }
 
         .volume-slider:hover::-moz-range-thumb {
-            box-shadow: 0 0 5px #0f0;
+            box-shadow: 0 0 5px var(--accent-color);
         }
 
         .modal {
@@ -132,10 +177,10 @@
         }
 
         .modal-content {
-            background: #001;
+            background: var(--bg-color);
             padding: 1rem;
             border-radius: 8px;
-            border: 1px solid #0f0;
+            border: 1px solid var(--accent-color);
             position: relative;
             max-width: 90%;
             max-height: 80%;
@@ -152,8 +197,8 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            background: #0f0;
-            color: #001;
+            background: var(--accent-color);
+            color: var(--bg-color);
             border: none;
             border-radius: 50%;
             cursor: pointer;
@@ -163,7 +208,7 @@
         }
 
         .close-btn:hover {
-            background: #0c0;
+            background: var(--hover-color);
         }
 
         #upload-progress {
@@ -171,13 +216,13 @@
             bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: #0f0;
-            color: #001;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
             padding: 10px 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
             z-index: 1000;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.6s ease;
             opacity: 0;
             visibility: hidden;
         }
@@ -186,18 +231,74 @@
             opacity: 1;
             visibility: visible;
         }
+
+        /* Theme toggle switch styles */
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-left: 10px;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--accent-color);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: var(--bg-color);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0">
-            <h1 class="text-xl sm:text-2xl font-bold"><a href="https://github.com/rajofearth/yplayer">YPlayer</a></h1>
+            <div class="flex items-center">
+                <h1 class="text-xl sm:text-2xl font-bold"><a href="https://github.com/rajofearth/yplayer">YPlayer</a></h1>
+                <label class="theme-switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
             <div class="flex items-center space-x-2 sm:space-x-4">
                 <input type="file" id="file-input" accept="audio/*" multiple class="hidden">
-                <label for="file-input" class="bg-[#0f0] hover:bg-[#0f0]/80 text-[#001] px-3 py-2 rounded cursor-pointer text-sm sm:text-base">
-                    Add Tracks
+                <label for="file-input" class="bg-[var(--accent-color)] hover:bg-[var(--hover-color)] text-[var(--bg-color)] px-3 py-2 rounded cursor-pointer text-sm sm:text-base">
+                    <svg class="w-5 h-5 sm:hidden" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="hidden sm:inline">Add Tracks</span>
                 </label>
-                <input type="text" id="search-input" placeholder="Search tracks" class="bg-[#001] text-[#0f0] border border-[#0f0] px-3 py-2 rounded text-sm sm:text-base">
+                <input type="text" id="search-input" placeholder="Search tracks" class="bg-[var(--bg-color)] text-[var(--text-color)] border border-[var(--accent-color)] px-3 py-2 rounded text-sm sm:text-base">
             </div>
         </header>
 
@@ -209,54 +310,52 @@
         </main>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-[#001] border-t border-[#0f0] p-4">
+<div class="fixed bottom-0 left-0 right-0 bg-[var(--plyr-bg-color)] border-t border-[var(--accent-color)] p-4">
         <div class="container max-w-full">
-            <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-                <div class="flex items-center space-x-3">
+            <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">                <div class="flex items-center space-x-3">
                     <img id="now-playing-img" src="imgs/yplayer-icon-logo.png" alt="Album art" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg cursor-pointer">
                     <div>
                         <p id="now-playing-title" class="text-sm sm:text-base font-medium">No Track Playing</p>
-                        <p id="now-playing-artist" class="text-xs sm:text-sm text-[#0f0]/70">Artist Name</p>
+                        <p id="now-playing-artist" class="text-xs sm:text-sm text-[var(--text-color)]/70">Artist Name</p>
                     </div>
                 </div>
-                <div class="flex-1 mx-2 sm:mx-4 w-full sm:w-auto">
-                    <div class="mb-2">
-                        <div class="bg-[#0f0]/30 h-1 rounded-full">
-                            <div id="progress-bar" class="bg-[#0f0] h-1 rounded-full w-0"></div>
+                <div class="player-controls flex-1 mx-2 sm:mx-4 w-full sm:w-auto">
+                    <div class="progress-container mb-2">
+                        <div class="bg-[var(--accent-color)]/30 h-1 rounded-full">
+                            <div id="progress-bar" class="bg-[var(--accent-color)] h-1 rounded-full w-0"></div>
                         </div>
                     </div>
-                    <div class="flex justify-between text-xs sm:text-sm text-[#0f0]/70">
+                    <div class="time-indicators flex justify-between text-xs sm:text-sm text-[var(--text-color)]/70">
                         <span id="current-time">0:00</span>
                         <span id="total-time">0:00</span>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button id="prev-btn" class="text-[#0f0]/70 hover:text-[#0f0]">
+                    <button id="prev-btn" class="text-[var(--text-color)]/70 hover:text-[var(--text-color)]">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                         </svg>
                     </button>
-                    <button id="play-pause-btn" class="bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2 sm:p-3">
+                    <button id="play-pause-btn" class="bg-[var(--accent-color)] hover:bg-[var(--hover-color)] text-[var(--bg-color)] rounded-full p-2 sm:p-3">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
                             </path></svg></button>
-                    <button id="next-btn" class="text-[#0f0]/70 hover:text-[#0f0]">
+                    <button id="next-btn" class="text-[var(--text-color)]/70 hover:text-[var(--text-color)]">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 19l7-7-7-7M6 5l7 7-7 7" />
                         </svg>
                     </button>
                 </div>
                 <div class="hidden sm:flex items-center space-x-1" id="vol">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-[#0f0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-[var(--text-color)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                     </svg>
-                    <input id="volume-control" type="range" class="volume-slider" min="0" max="1" step="0.01" value="1">
+                    <input id="volume-control" type="range" class="volume-slider" min="0" max="1" step="0.01" value=".4">
                 </div>
             </div>
         </div>
     </div>
-
     <div id="upload-progress" class="hidden">Uploading...</div>
 
     <div id="album-art-modal" class="modal">
@@ -266,5 +365,27 @@
         </div>
     </div>
     <script src="script.js"></script>
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+
+        // Check for saved theme preference or default to dark theme
+        if (localStorage.getItem('theme') === 'light') {
+            body.classList.add('light-theme');
+            themeToggle.checked = true;
+        }
+
+        // Theme switch event listener
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                body.classList.add('light-theme');
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-theme');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+    </script>
 </body>
 </html>

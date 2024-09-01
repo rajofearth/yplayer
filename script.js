@@ -9,6 +9,10 @@ class AudioPlayer {
         this.songsDisplayed = false;
         this.currentTime = 0;
 
+        // Add theme-related properties
+        this.currentTheme = localStorage.getItem('theme') || 'dark';
+        this.updateThemeColors();
+
         this.audioElement.addEventListener('ended', () => this.playNext());
         this.audioElement.addEventListener('timeupdate', () => this.updateProgressBar());
         this.audioElement.addEventListener('loadedmetadata', () => this.updateTotalTime());
@@ -57,37 +61,62 @@ class AudioPlayer {
             }
         });
     }
+    
+    updateThemeColors() {
+        const root = document.documentElement;
+        const bgColor = getComputedStyle(root).getPropertyValue('--bg-color').trim();
+        const textColor = getComputedStyle(root).getPropertyValue('--text-color').trim();
+        const accentColor = getComputedStyle(root).getPropertyValue('--accent-color').trim();
+        const hoverColor = getComputedStyle(root).getPropertyValue('--hover-color').trim();
+
+        // Update color references in the class
+        this.bgColor = bgColor;
+        this.textColor = textColor;
+        this.accentColor = accentColor;
+        this.hoverColor = hoverColor;
+    }
+
     uploadSongs(files) {
         const fileArray = Array.from(files);
         const totalFiles = fileArray.length;
-
+    
         if (totalFiles > 0) {
             this.showUploadProgress();
         }
-
+    
         const promises = fileArray.map((file, index) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    this.addToQueue(file);
-                    this.updateUploadProgress(index + 1, totalFiles);
-                    resolve();
-                }, 100);
+            return new Promise((resolve, reject) => {
+                try {
+                    setTimeout(() => {
+                        this.addToQueue(file);
+                        this.updateUploadProgress(index + 1, totalFiles);
+                        resolve();
+                    }, 100);
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    reject(error);
+                }
             });
         });
-
-        Promise.all(promises).then(() => {
-            this.hideUploadProgress();
-            if (!this.songsDisplayed) {
-                this.updateQueueDisplay();
-                this.songsDisplayed = true;
-
-                if (this.queue.length > 0) {
-                    this.play();
+    
+        Promise.all(promises)
+            .then(() => {
+                this.hideUploadProgress();
+                if (!this.songsDisplayed) {
+                    this.updateQueueDisplay();
+                    this.songsDisplayed = true;
+    
+                    if (this.queue.length > 0) {
+                        this.play();
+                    }
                 }
-            }
-        });
+            })
+            .catch((error) => {
+                console.error('Error during upload process:', error);
+                this.hideUploadProgress();
+            });
     }
-
+    
     showUploadProgress() {
         const uploadProgress = document.getElementById('upload-progress');
         if (uploadProgress) {
@@ -329,7 +358,6 @@ togglePlayPause() {
         document.getElementById('now-playing-img').src = currentTrack.image;
     }
 
-    // Function to create queue items and set up click events
     updateQueueDisplay(filteredTracks = this.queue) {
         const queueContainer = document.querySelector('.queue-container');
         queueContainer.innerHTML = '';
@@ -337,16 +365,16 @@ togglePlayPause() {
         filteredTracks.forEach((track, index) => {
             const isCurrentTrack = index === this.currentTrackIndex;
             const trackElement = document.createElement('div');
-            trackElement.className = `bg-[#001122] p-4 rounded-xl flex items-center justify-between ${isCurrentTrack ? 'border-2 border-[#00ff00]' : ''}`;
+            trackElement.className = `bg-[var(--queue-track-bg-color)] p-4 rounded-xl flex items-center justify-between ${isCurrentTrack ? 'border-2 border-[var(--accent-color)]' : ''}`;
             trackElement.innerHTML = `
                 <div class="flex items-center space-x-4">
                     <img src="${track.image}" alt="Album art" class="w-12 h-12 object-cover rounded" data-image="${track.image}">
                     <div>
-                        <p class="font-medium text-[#00ff00]">${track.name}</p>
-                        <p class="text-sm text-[#00ff00]/70">${track.artist}</p>
+                        <p class="font-medium text-[var(--text-color)]">${track.name}</p>
+                        <p class="text-sm text-[var(--text-color)]/70">${track.artist}</p>
                     </div>
                 </div>
-                <button class="play-track-btn bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2" data-index="${index}">
+                <button class="play-track-btn bg-[var(--accent-color)] hover:bg-[var(--hover-color)] text-[var(--bg-color)] rounded-full p-2" data-index="${index}">
                     ${isCurrentTrack && this.isPlaying ? this.getPauseIcon() : this.getPlayIcon()}
                 </button>
             `;
@@ -398,14 +426,12 @@ togglePlayPause() {
         });
     }
 
-
     updatePlayPauseButton() {
         const button = document.getElementById('play-pause-btn');
-        button.innerHTML = this.isPlaying
-            ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
-            : '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-        button.className = 'bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2 sm:p-3';
+        button.innerHTML = this.isPlaying ? this.getPauseIcon() : this.getPlayIcon();
+        button.className = 'bg-[var(--accent-color)] hover:bg-[var(--hover-color)] text-[var(--bg-color)] rounded-full p-2 sm:p-3';
     }
+
     searchTracks(query) {
         if (query.trim() === '') {
             this.updateQueueDisplay();
@@ -419,7 +445,7 @@ togglePlayPause() {
 
         if (filteredTracks.length === 0) {
             const queueContainer = document.querySelector('.queue-container');
-            queueContainer.innerHTML = '<p class="text-center text-[#00ff00]/70 mt-4">No matching tracks found</p>';
+            queueContainer.innerHTML = '<p class="text-center text-[var(--text-color)]/70 mt-4">No matching tracks found</p>';
         } else {
             this.updateQueueDisplay(filteredTracks);
         }
@@ -445,19 +471,20 @@ togglePlayPause() {
 }
 
 const player = new AudioPlayer();
+
 // Set up drag and drop functionality
 document.body.addEventListener('dragover', (e) => {
     e.preventDefault();
-    document.body.classList.add('bg-[#00ff00]/10');
+    document.body.classList.add('bg-[var(--accent-color)]/10');
 });
 
 document.body.addEventListener('dragleave', () => {
-    document.body.classList.remove('bg-[#00ff00]/10');
+    document.body.classList.remove('bg-[var(--accent-color)]/10');
 });
 
 document.body.addEventListener('drop', (e) => {
     e.preventDefault();
-    document.body.classList.remove('bg-[#00ff00]/10');
+    document.body.classList.remove('bg-[var(--accent-color)]/10');
     player.uploadSongs(e.dataTransfer.files);
 });
 
@@ -465,4 +492,14 @@ document.body.addEventListener('drop', (e) => {
 const fileInput = document.getElementById('file-input');
 if (fileInput) {
     fileInput.addEventListener('change', (e) => player.uploadSongs(e.target.files));
+}
+
+// Add theme change listener
+themeToggle = document.getElementById('theme-toggle');
+if (themeToggle) {
+    themeToggle.addEventListener('change', () => {
+        player.currentTheme = themeToggle.checked ? 'light' : 'dark';
+        player.updateThemeColors();
+        player.updateQueueDisplay();
+    });
 }
