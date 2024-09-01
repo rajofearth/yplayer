@@ -192,7 +192,7 @@ play() {
                     this.updatePlayPauseButton();
                 });
         } else {
-            // Start a new track
+            // Start a new track or reset current time for the same track
             this.audioElement.src = URL.createObjectURL(currentTrack.file);
             this.currentTime = 0; // Start from the beginning for a new track
             this.audioElement.currentTime = this.currentTime;
@@ -223,6 +223,7 @@ play() {
 }
 
 
+
 pause() {
     this.audioElement.pause();
     this.isPlaying = false;
@@ -235,6 +236,7 @@ pause() {
     }
     this.updatePlayPauseButtonListed();
 }
+
 
 
 togglePlayPause() {
