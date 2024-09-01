@@ -330,72 +330,71 @@ togglePlayPause() {
     }
 
     // Function to create queue items and set up click events
-// Function to create queue items and set up click events
-updateQueueDisplay(filteredTracks = this.queue) {
-    const queueContainer = document.querySelector('.queue-container');
-    queueContainer.innerHTML = '';
+    updateQueueDisplay(filteredTracks = this.queue) {
+        const queueContainer = document.querySelector('.queue-container');
+        queueContainer.innerHTML = '';
 
-    filteredTracks.forEach((track, index) => {
-        const isCurrentTrack = index === this.currentTrackIndex;
-        const trackElement = document.createElement('div');
-        trackElement.className = `bg-[#001122] p-4 rounded-xl flex items-center justify-between ${isCurrentTrack ? 'border-2 border-[#00ff00]' : ''}`;
-        trackElement.innerHTML = `
-            <div class="flex items-center space-x-4">
-                <img src="${track.image}" alt="Album art" class="w-12 h-12 object-cover rounded" data-image="${track.image}">
-                <div>
-                    <p class="font-medium text-[#00ff00]">${track.name}</p>
-                    <p class="text-sm text-[#00ff00]/70">${track.artist}</p>
+        filteredTracks.forEach((track, index) => {
+            const isCurrentTrack = index === this.currentTrackIndex;
+            const trackElement = document.createElement('div');
+            trackElement.className = `bg-[#001122] p-4 rounded-xl flex items-center justify-between ${isCurrentTrack ? 'border-2 border-[#00ff00]' : ''}`;
+            trackElement.innerHTML = `
+                <div class="flex items-center space-x-4">
+                    <img src="${track.image}" alt="Album art" class="w-12 h-12 object-cover rounded" data-image="${track.image}">
+                    <div>
+                        <p class="font-medium text-[#00ff00]">${track.name}</p>
+                        <p class="text-sm text-[#00ff00]/70">${track.artist}</p>
+                    </div>
                 </div>
-            </div>
-            <button class="play-track-btn bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2" data-index="${index}">
-                ${isCurrentTrack && this.isPlaying ? this.getPauseIcon() : this.getPlayIcon()}
-            </button>
+                <button class="play-track-btn bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2" data-index="${index}">
+                    ${isCurrentTrack && this.isPlaying ? this.getPauseIcon() : this.getPlayIcon()}
+                </button>
+            `;
+            queueContainer.appendChild(trackElement);
+
+            // Click event for showing the modal
+            const imgElement = trackElement.querySelector('img');
+            imgElement.addEventListener('click', () => {
+                showModal(track.image);
+            });
+
+            // Click event to play the selected track
+            const playButton = trackElement.querySelector('.play-track-btn');
+            playButton.addEventListener('click', () => {
+                this.currentTrackIndex = index;
+                this.play();
+                this.updateQueueDisplay(); // Refresh display to update buttons correctly
+            });
+        });
+    }
+
+    // Utility function to get play SVG
+    getPlayIcon() {
+        return `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            </svg>
         `;
-        queueContainer.appendChild(trackElement);
+    }
 
-        // Click event for showing the modal
-        const imgElement = trackElement.querySelector('img');
-        imgElement.addEventListener('click', () => {
-            showModal(track.image);
+    // Utility function to get pause SVG
+    getPauseIcon() {
+        return `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        `;
+    }
+
+    // Updating play/pause button state
+    updatePlayPauseButtonListed() {
+        document.querySelectorAll('.play-track-btn').forEach((button, index) => {
+            // Check if the button corresponds to the current track and update accordingly
+            button.innerHTML = index === this.currentTrackIndex && this.isPlaying
+                ? this.getPauseIcon()
+                : this.getPlayIcon();
         });
-
-        // Click event to play the selected track
-        const playButton = trackElement.querySelector('.play-track-btn');
-        playButton.addEventListener('click', () => {
-            this.currentTrackIndex = index;
-            this.play();
-            this.updateQueueDisplay(); // Refresh display to update buttons correctly
-        });
-    });
-}
-
-// Utility function to get play SVG
-getPlayIcon() {
-    return `
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-        </svg>
-    `;
-}
-
-// Utility function to get pause SVG
-getPauseIcon() {
-    return `
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-    `;
-}
-
-// Updating play/pause button state
-updatePlayPauseButtonListed() {
-    document.querySelectorAll('.play-track-btn').forEach((button, index) => {
-        // Check if the button corresponds to the current track and update accordingly
-        button.innerHTML = index === this.currentTrackIndex && this.isPlaying
-            ? this.getPauseIcon()
-            : this.getPlayIcon();
-    });
-}
+    }
 
 
     updatePlayPauseButton() {
