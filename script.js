@@ -4,13 +4,13 @@ class AudioPlayer {
         this.queue = [];
         this.currentTrackIndex = 0;
         this.isPlaying = false;
-        this.songsDisplayed = false;  // Flag to track if songs have been displayed
+        this.songsDisplayed = false;
         this.currentTime = 0;
         this.isResuming = false;
+
         this.audioElement.addEventListener('ended', () => this.playNext());
         this.audioElement.addEventListener('timeupdate', () => this.updateProgressBar());
         this.audioElement.addEventListener('loadedmetadata', () => this.updateTotalTime());
-        this.audioElement.addEventListener('ended', () => this.nextTrack());
         this.setupEventListeners();
 
         // Set up Media Session API
@@ -29,33 +29,29 @@ class AudioPlayer {
         document.getElementById('volume-control').addEventListener('input', (e) => this.setVolume(e.target.value));
         document.getElementById('progress-bar').parentElement.addEventListener('click', (e) => this.seek(e));
         document.getElementById('search-input').addEventListener('input', (e) => this.searchTracks(e.target.value));
-        document.addEventListener("DOMContentLoaded", function () {
-            // Select the necessary elements
+
+        document.addEventListener("DOMContentLoaded", () => {
             const albumArt = document.getElementById("now-playing-img");
             const modal = document.getElementById("album-art-modal");
             const modalImg = document.getElementById("modal-img");
             const closeModalBtn = document.getElementById("close-modal");
-        
-            // Show the modal when the album art is clicked
+
             albumArt.addEventListener("click", () => {
-                modalImg.src = albumArt.src; // Set the modal image to the album art source
-                modal.classList.remove("hidden"); // Show the modal
+                modalImg.src = albumArt.src;
+                modal.classList.remove("hidden");
             });
-        
-            // Hide the modal when the close button is clicked
+
             closeModalBtn.addEventListener("click", () => {
-                modal.classList.add("hidden"); // Hide the modal
+                modal.classList.add("hidden");
             });
-        
-            // Optional: Hide the modal when clicking outside the modal content
+
             modal.addEventListener("click", (e) => {
                 if (e.target === modal) {
                     modal.classList.add("hidden");
                 }
             });
         });
-        
-        // Add keyboard shortcuts
+
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
                 e.preventDefault();
@@ -167,44 +163,20 @@ play() {
     if (this.queue.length > 0) {
         const currentTrack = this.queue[this.currentTrackIndex];
 
-        // Check if the audio is paused and the current track is already loaded
-        if (this.isPaused && this.audioElement.src === URL.createObjectURL(currentTrack.file)) {
-            // If paused, just resume playback
+        if (this.isPlaying && !this.isResuming) {
             this.audioElement.play()
-                .then(() => {
-                    this.isPlaying = true;
-                    this.isPaused = false;
-                    this.updateNowPlaying();
-                    this.updatePlayPauseButton();
-                    this.updateQueueDisplay();
-                    this.updatePlayPauseButtonListed();
-
-                    if ('mediaSession' in navigator) {
-                        this.updateMediaSessionMetadata();
-                        navigator.mediaSession.playbackState = 'playing';
-                    }
-                })
-                .catch(error => {
-                    console.error("Error resuming audio:", error);
-                    this.isPlaying = false;
-                    this.updatePlayPauseButtonListed();
-                    this.updatePlayPauseButton();
-                });
+                .catch(error => console.error("Error resuming audio:", error));
         } else {
-            // If not paused, start a new track
             this.audioElement.src = URL.createObjectURL(currentTrack.file);
             this.audioElement.currentTime = 0;
-            
-            // Play the audio
+
             this.audioElement.play()
                 .then(() => {
                     this.isPlaying = true;
-                    this.isPaused = false;
+                    this.isResuming = false;
                     this.updateNowPlaying();
                     this.updatePlayPauseButton();
                     this.updateQueueDisplay();
-                    this.updatePlayPauseButtonListed();
-
                     if ('mediaSession' in navigator) {
                         this.updateMediaSessionMetadata();
                         navigator.mediaSession.playbackState = 'playing';
@@ -214,23 +186,21 @@ play() {
                     console.error("Error playing audio:", error);
                     this.isPlaying = false;
                     this.updatePlayPauseButton();
-                    this.updatePlayPauseButtonListed();
                 });
         }
     }
 }
 
-    pause() {
-        this.audioElement.pause();
-        this.isPlaying = false;
-        this.isPaused = true;
-        this.currentTime = this.audioElement.currentTime; // Store the current playback position
-        this.updatePlayPauseButton();
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = 'paused';
-        }
-        this.updatePlayPauseButtonListed();
+pause() {
+    this.audioElement.pause();
+    this.isPlaying = false;
+    this.isResuming = true;
+    this.currentTime = this.audioElement.currentTime;
+    this.updatePlayPauseButton();
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
     }
+}
 
     togglePlayPause() {
         if (this.isPlaying) {
@@ -281,7 +251,7 @@ play() {
         if (isNaN(this.audioElement.duration) || this.audioElement.duration <= 0) {
             return; // Exit if duration is not a valid number
         }
-        
+
         const progress = (this.audioElement.currentTime / this.audioElement.duration) * 100;
         document.getElementById('progress-bar').style.width = `${progress}%`;
         document.getElementById('current-time').textContent = this.formatTime(this.audioElement.currentTime);
@@ -429,8 +399,6 @@ updatePlayPauseButtonListed() {
 
 const player = new AudioPlayer();
 document.addEventListener('DOMContentLoaded', () => {
-    player;
-    // Add drag and drop functionality
     const dropZone = document.body;
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
