@@ -3,6 +3,7 @@ class AudioPlayer {
         this.audioElement = new Audio();
         this.queue = [];
         this.currentTrackIndex = 0;
+        this.resumed = false;
         this.isPlaying = false;
         this.isPaused = false;
         this.songsDisplayed = false;
@@ -164,9 +165,10 @@ class AudioPlayer {
 play() {
     if (this.queue.length > 0) {
         const currentTrack = this.queue[this.currentTrackIndex];
-
-        if (this.isPaused && this.audioElement.src === URL.createObjectURL(currentTrack.file)) {
+        if (this.isPaused && this.audioElement.src === URL.createObjectURL(currentTrack.file) && this.resumed == false) {
             // Resume playback
+            this.resumed = true;
+            this.audioElement.currentTime = this.currentTime;
             this.audioElement.play()
                 .then(() => {
                     this.isPlaying = true;
@@ -190,6 +192,7 @@ play() {
         } else {
             // Start a new track
             this.audioElement.src = URL.createObjectURL(currentTrack.file);
+            this.currentTime = 0;
             this.audioElement.currentTime = this.currentTime;
             
             this.audioElement.play()
@@ -219,6 +222,7 @@ pause() {
     this.audioElement.pause();
     this.isPlaying = false;
     this.isPaused = true;
+    this.resumed = false;
     this.currentTime = this.audioElement.currentTime;
     this.updatePlayPauseButton();
     if ('mediaSession' in navigator) {
