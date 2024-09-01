@@ -305,13 +305,15 @@ play() {
     }
 
     // Function to create queue items and set up click events
+// Function to create queue items and set up click events
 updateQueueDisplay(filteredTracks = this.queue) {
     const queueContainer = document.querySelector('.queue-container');
     queueContainer.innerHTML = '';
 
     filteredTracks.forEach((track, index) => {
+        const isCurrentTrack = index === this.currentTrackIndex;
         const trackElement = document.createElement('div');
-        trackElement.className = `bg-[#001122] p-4 rounded-xl flex items-center justify-between ${index === this.currentTrackIndex ? 'border-2 border-[#00ff00]' : ''}`;
+        trackElement.className = `bg-[#001122] p-4 rounded-xl flex items-center justify-between ${isCurrentTrack ? 'border-2 border-[#00ff00]' : ''}`;
         trackElement.innerHTML = `
             <div class="flex items-center space-x-4">
                 <img src="${track.image}" alt="Album art" class="w-12 h-12 object-cover rounded" data-image="${track.image}">
@@ -320,30 +322,29 @@ updateQueueDisplay(filteredTracks = this.queue) {
                     <p class="text-sm text-[#00ff00]/70">${track.artist}</p>
                 </div>
             </div>
-            <button class="play-track-btn bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2" data-index="${index}" id="play-btn-${index}">
-                ${index === this.currentTrackIndex && this.isPlaying ? this.getPauseIcon() : this.getPlayIcon()}
+            <button class="play-track-btn bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2" data-index="${index}">
+                ${isCurrentTrack && this.isPlaying ? this.getPauseIcon() : this.getPlayIcon()}
             </button>
         `;
         queueContainer.appendChild(trackElement);
 
-        // Add click event to track image for showing modal
+        // Click event for showing the modal
         const imgElement = trackElement.querySelector('img');
         imgElement.addEventListener('click', () => {
             showModal(track.image);
         });
 
-        // Add click event to the play/pause button
+        // Click event to play the selected track
         const playButton = trackElement.querySelector('.play-track-btn');
-        playButton.addEventListener('click', (e) => {
-            const index = parseInt(e.currentTarget.dataset.index);
+        playButton.addEventListener('click', () => {
             this.currentTrackIndex = index;
             this.play();
-            this.updateQueueDisplay(); // Refresh queue to reflect updated play/pause button state
+            this.updateQueueDisplay(); // Refresh display to update buttons correctly
         });
     });
 }
 
-// Utility to return the play icon SVG
+// Utility function to get play SVG
 getPlayIcon() {
     return `
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,7 +353,7 @@ getPlayIcon() {
     `;
 }
 
-// Utility to return the pause icon SVG
+// Utility function to get pause SVG
 getPauseIcon() {
     return `
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -363,16 +364,14 @@ getPauseIcon() {
 
 // Updating play/pause button state
 updatePlayPauseButtonListed() {
-    // Get all play/pause buttons
     document.querySelectorAll('.play-track-btn').forEach((button, index) => {
-        // Update the icon based on the current playback state
-        if (index === this.currentTrackIndex) {
-            button.innerHTML = this.isPlaying ? this.getPauseIcon() : this.getPlayIcon();
-        } else {
-            button.innerHTML = this.getPlayIcon();
-        }
+        // Check if the button corresponds to the current track and update accordingly
+        button.innerHTML = index === this.currentTrackIndex && this.isPlaying
+            ? this.getPauseIcon()
+            : this.getPlayIcon();
     });
 }
+
 
     updatePlayPauseButton() {
         const button = document.getElementById('play-pause-btn');
