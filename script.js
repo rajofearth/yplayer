@@ -162,19 +162,19 @@ class AudioPlayer {
 }
 
 
-play() {
-    if (this.queue.length > 0) {
-        const currentTrack = this.queue[this.currentTrackIndex];
-        const isSameTrack = this.audioElement.src === URL.createObjectURL(currentTrack.file);
+    play() {
+        if (this.queue.length > 0) {
+            const currentTrack = this.queue[this.currentTrackIndex];
+            const trackUrl = URL.createObjectURL(currentTrack.file);
 
-        if (this.isPaused && isSameTrack) {
-            // Resume playback from the current position
-            this.audioElement.currentTime = this.currentTime;
-            this.audioElement.play()
-                .then(() => {
-                    this.isPlaying = true;
-                    this.isPaused = false;
-                    this.resumed = true;
+            // Check if the same track is currently playing
+            if (this.audioElement.src === trackUrl && this.isPaused) {
+                // Resume playback
+                this.audioElement.currentTime = this.currentTime;
+                this.audioElement.play()
+                    .then(() => {
+                        this.isPlaying = true;
+                        this.isPaused = false;
                     this.updateNowPlaying();
                     this.updatePlayPauseButton();
                     this.updateQueueDisplay();
@@ -186,41 +186,41 @@ play() {
                     }
                 })
                 .catch(error => {
-                    console.error("Error resuming audio:", error);
-                    this.isPlaying = false;
-                    this.updatePlayPauseButtonListed();
-                    this.updatePlayPauseButton();
-                });
-        } else {
-            // Start a new track or reset current time for the same track
-            this.audioElement.src = URL.createObjectURL(currentTrack.file);
-            this.currentTime = 0; // Start from the beginning for a new track
-            this.audioElement.currentTime = this.currentTime;
+                        console.error("Error resuming audio:", error);
+                        this.isPlaying = false;
+                        this.updatePlayPauseButtonListed();
+                        this.updatePlayPauseButton();
+                    });
+            } else {
+                // Start a new track or reset current time for the same track
+                this.audioElement.src = trackUrl;
+                    this.audioElement.currentTime = 0;
+                this.audioElement.currentTime = this.currentTime;
 
-            this.audioElement.play()
-                .then(() => {
-                    this.isPlaying = true;
-                    this.isPaused = false;
-                    this.resumed = false; // Reset resumed flag
-                    this.updateNowPlaying();
-                    this.updatePlayPauseButton();
-                    this.updateQueueDisplay();
-                    this.updatePlayPauseButtonListed();
+                this.audioElement.play()
+                    .then(() => {
+                        this.isPlaying = true;
+                        this.isPaused = false;
+                        this.resumed = false; // Reset resumed flag
+                        this.updateNowPlaying();
+                        this.updatePlayPauseButton();
+                        this.updateQueueDisplay();
+                        this.updatePlayPauseButtonListed();
 
-                    if ('mediaSession' in navigator) {
-                        this.updateMediaSessionMetadata();
-                        navigator.mediaSession.playbackState = 'playing';
-                    }
-                })
-                .catch(error => {
-                    console.error("Error playing audio:", error);
-                    this.isPlaying = false;
-                    this.updatePlayPauseButton();
-                    this.updatePlayPauseButtonListed();
-                });
+                        if ('mediaSession' in navigator) {
+                            this.updateMediaSessionMetadata();
+                            navigator.mediaSession.playbackState = 'playing';
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error playing audio:", error);
+                        this.isPlaying = false;
+                        this.updatePlayPauseButton();
+                        this.updatePlayPauseButtonListed();
+                    });
+            }
         }
     }
-}
 
 
 
@@ -228,7 +228,7 @@ pause() {
     this.audioElement.pause();
     this.isPlaying = false;
     this.isPaused = true;
-    this.resumed = false; // Reset resumed flag
+    this.isPlaying = false;
     this.currentTime = this.audioElement.currentTime; // Save current time
     this.updatePlayPauseButton();
     if ('mediaSession' in navigator) {
