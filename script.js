@@ -177,6 +177,7 @@ play() {
                     this.updateNowPlaying();
                     this.updatePlayPauseButton();
                     this.updateQueueDisplay();
+                    this.updatePlayPauseButtonListed();
 
                     if ('mediaSession' in navigator) {
                         this.updateMediaSessionMetadata();
@@ -186,6 +187,7 @@ play() {
                 .catch(error => {
                     console.error("Error resuming audio:", error);
                     this.isPlaying = false;
+                    this.updatePlayPauseButtonListed();
                     this.updatePlayPauseButton();
                 });
         } else {
@@ -201,6 +203,7 @@ play() {
                     this.updateNowPlaying();
                     this.updatePlayPauseButton();
                     this.updateQueueDisplay();
+                    this.updatePlayPauseButtonListed();
 
                     if ('mediaSession' in navigator) {
                         this.updateMediaSessionMetadata();
@@ -211,6 +214,7 @@ play() {
                     console.error("Error playing audio:", error);
                     this.isPlaying = false;
                     this.updatePlayPauseButton();
+                    this.updatePlayPauseButtonListed();
                 });
         }
     }
@@ -225,6 +229,7 @@ play() {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = 'paused';
         }
+        this.updatePlayPauseButtonListed();
     }
 
     togglePlayPause() {
@@ -273,12 +278,16 @@ play() {
     }
 
     updateProgressBar() {
+        if (isNaN(this.audioElement.duration) || this.audioElement.duration <= 0) {
+            return; // Exit if duration is not a valid number
+        }
+        
         const progress = (this.audioElement.currentTime / this.audioElement.duration) * 100;
         document.getElementById('progress-bar').style.width = `${progress}%`;
         document.getElementById('current-time').textContent = this.formatTime(this.audioElement.currentTime);
 
          // Update media session position state
-         if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
             navigator.mediaSession.setPositionState({
                 duration: this.audioElement.duration,
                 playbackRate: this.audioElement.playbackRate,
