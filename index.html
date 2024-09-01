@@ -4,13 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YPlayer</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="imgs/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="imgs/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="imgs/favicon-16x16.png">
+    <link rel="manifest" href="imgs/site.webmanifest">
+    <link rel="mask-icon" href="imgs/safari-pinned-tab.svg" color="#5bbad5">
+    <link rel="shortcut icon" href="imgs/favicon.ico">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="msapplication-config" content="imgs/browserconfig.xml">
+    <meta name="theme-color" content="#ffffff">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
+        body { 
+            font-family: 'Courier New', monospace;
+            background-color: #001; 
+            color: #0f0;
+            margin: 0;
+            padding: 2vh;
+            line-height: 1.3;
+            font-size: 16px;
+        }
+
+        h1 { 
+            font-size: 2.5em;
+            text-align: center;
+            text-shadow: 0 0 10px #0f0;
+            margin-bottom: 20px;
+        }
+
+        a {
+            color: #0f0;
+            text-decoration: none;
+            border-bottom: 1px dashed #0f0;
+        }
+
+        a:hover {
+            text-shadow: 0 0 5px #0f0;
+        }
+
         .queue-container {
-            max-height: calc(100vh - 300px); /* Dynamic height adjustment */
+            max-height: calc(100vh - 300px);
             overflow-y: auto;
-            padding-bottom: 1rem; /* Add extra padding to prevent hiding last item */
+            padding-bottom: 1rem;
         }
         .queue-container::-webkit-scrollbar {
             width: 8px;
@@ -19,27 +55,43 @@
             background-color: #4a5568;
             border-radius: 4px;
         }
-        /* Mobile devices */
         @media (max-width: 768px) {
             .queue-container {
-                padding-bottom: 5rem; /* Increased padding for mobile devices */
+                padding-bottom: 5rem;
             }
         }
 
         .volume-slider {
+            --webkit-appearance: none;
             width: 80px;
-            height: 6px;
-            background: #4a5568;
-            border-radius: 3px;
+            height: 4px;
+            background: rgba(0, 255, 0, 0.2);
+            border-radius: 2px;
             outline: none;
         }
         .volume-slider::-webkit-slider-thumb {
-            width: 16px;
-            height: 16px;
-            background: #ffffff;
+            --webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #0f0;
             border-radius: 50%;
+            cursor: pointer;
         }
-        /* Modal Overlay */
+        .volume-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: #0f0;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .volume-slider:hover::-webkit-slider-thumb {
+            box-shadow: 0 0 5px #0f0;
+        }
+        .volume-slider:hover::-moz-range-thumb {
+            box-shadow: 0 0 5px #0f0;
+        }
         .modal {
             position: fixed;
             top: 0;
@@ -52,27 +104,24 @@
             justify-content: center;
             z-index: 1000;
         }
-
-        /* Modal Content */
         .modal-content {
-            background: white;
+            background: #001;
             padding: 1rem;
             border-radius: 8px;
             position: relative;
+            border: 1px solid #0f0;
         }
-
         .modal-img {
             width: 100%;
             height: auto;
-            max-width: 400px; /* Adjust as needed */
+            max-width: 400px;
         }
-
         .close-btn {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: #333;
-            color: white;
+            background: #0f0;
+            color: #001;
             border: none;
             border-radius: 50%;
             cursor: pointer;
@@ -81,19 +130,18 @@
         .hidden {
             display: none;
         }
-
     </style>
 </head>
-<body class="bg-[#111118] text-white font-sans">
+<body class="bg-[#001] text-[#0f0] font-['Courier_New',_monospace]">
     <div class="container mx-auto px-2 py-6 mb-20 max-w-full">
         <header class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0">
             <h1 class="text-xl sm:text-2xl font-bold">YPlayer</h1>
             <div class="flex items-center space-x-2 sm:space-x-4">
                 <input type="file" id="file-input" accept="audio/*" multiple class="hidden">
-                <label for="file-input" class="bg-blue-500 hover:bg-blue-600 px-3 py-2 rounded cursor-pointer text-sm sm:text-base">
+                <label for="file-input" class="bg-[#0f0] hover:bg-[#0f0]/80 text-[#001] px-3 py-2 rounded cursor-pointer text-sm sm:text-base">
                     Add Tracks
                 </label>
-                <input type="text" id="search-input" placeholder="Search tracks" class="bg-[#292938] text-white px-3 py-2 rounded text-sm sm:text-base">
+                <input type="text" id="search-input" placeholder="Search tracks" class="bg-[#001] text-[#0f0] border border-[#0f0] px-3 py-2 rounded text-sm sm:text-base">
             </div>
         </header>
 
@@ -105,49 +153,46 @@
         </main>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-[#292938] p-4">
+    <div class="fixed bottom-0 left-0 right-0 bg-[#001] border-t border-[#0f0] p-4">
         <div class="container mx-auto px-2 max-w-full">
             <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                 <div class="flex items-center space-x-3">
-                    <!-- Placeholder image and click event to open modal -->
                     <img id="now-playing-img" src="https://via.placeholder.com/150" alt="Album art" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg cursor-pointer" onclick="showModal()">
                     <div>
-                        <!-- Placeholder text for title and artist -->
                         <p id="now-playing-title" class="text-sm sm:text-base font-medium">No Track Playing</p>
-                        <p id="now-playing-artist" class="text-xs sm:text-sm text-gray-400">Artist Name</p>
+                        <p id="now-playing-artist" class="text-xs sm:text-sm text-[#0f0]/70">Artist Name</p>
                     </div>
                 </div>
                 <div class="flex-1 mx-2 sm:mx-4 w-full sm:w-auto">
                     <div class="mb-2">
-                        <div class="bg-gray-700 h-1 rounded-full">
-                            <div id="progress-bar" class="bg-white h-1 rounded-full w-0"></div>
+                        <div class="bg-[#0f0]/30 h-1 rounded-full">
+                            <div id="progress-bar" class="bg-[#0f0] h-1 rounded-full w-0"></div>
                         </div>
                     </div>
-                    <div class="flex justify-between text-xs sm:text-sm text-gray-400">
+                    <div class="flex justify-between text-xs sm:text-sm text-[#0f0]/70">
                         <span id="current-time">0:00</span>
                         <span id="total-time">0:00</span>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button id="prev-btn" class="text-gray-400 hover:text-white">
+                    <button id="prev-btn" class="text-[#0f0]/70 hover:text-[#0f0]">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                         </svg>
                     </button>
-                    <button id="play-pause-btn" class="bg-blue-500 hover:bg-blue-600 rounded-full p-2 sm:p-3">
+                    <button id="play-pause-btn" class="bg-[#0f0] hover:bg-[#0f0]/80 text-[#001] rounded-full p-2 sm:p-3">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </button>
-                    <button id="next-btn" class="text-gray-400 hover:text-white">
+                    <button id="next-btn" class="text-[#0f0]/70 hover:text-[#0f0]">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                         </svg>
                     </button>
-                    <!-- Volume slider hidden on mobile devices -->
                     <div class="hidden sm:flex items-center space-x-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-[#0f0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                         </svg>
                         <input type="range" id="volume-control" min="0" max="1" step="0.1" value="1" class="volume-slider">
@@ -157,7 +202,6 @@
         </div>
     </div>
 
-    <!-- Modal Container -->
     <div id="album-art-modal" class="modal hidden">
         <div class="modal-content">
             <img id="modal-img" src="" alt="Album Art" class="modal-img">

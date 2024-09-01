@@ -30,6 +30,14 @@ class AudioPlayer {
         this.audioElement.addEventListener('loadedmetadata', () => this.updateTotalTime());
         this.audioElement.addEventListener('ended', () => this.nextTrack());
         this.setupEventListeners();
+
+        // Set up Media Session API
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', () => this.play());
+            navigator.mediaSession.setActionHandler('pause', () => this.pause());
+            navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
+            navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+        }
     }
 
     setupEventListeners() {
@@ -148,40 +156,46 @@ class AudioPlayer {
 }
 
 
-    play() {
-        if (this.queue.length > 0) {
-            const currentTrack = this.queue[this.currentTrackIndex];
+play() {
+    if (this.queue.length > 0) {
+        const currentTrack = this.queue[this.currentTrackIndex];
+        
+        if (!this.isPaused) {
+            // If not paused, start a new track
             this.audioElement.src = URL.createObjectURL(currentTrack.file);
-
-            // Set the playback position based on whether resuming or playing a new track
-            if (this.isResuming) {
-                this.audioElement.currentTime = this.currentTime;
-            } else {
-                this.audioElement.currentTime = 0;
-            }
-
-            this.audioElement.play()
-                .then(() => {
-                    this.isPlaying = true;
-                    this.updateNowPlaying();
-                    this.updatePlayPauseButton();
-                    this.updateQueueDisplay();
-                })
-                .catch(error => {
-                    console.error("Error playing audio:", error);
-                    this.isPlaying = false;
-                    this.updatePlayPauseButton();
-                });
-            // Reset resume flag after starting playback
-            this.isResuming = false;
+            this.audioElement.currentTime = 0;
         }
+        
+        // Play the audio
+        this.audioElement.play()
+            .then(() => {
+                this.isPlaying = true;
+                this.isPaused = false;
+                this.updateNowPlaying();
+                this.updatePlayPauseButton();
+                this.updateQueueDisplay();
+                
+                if ('mediaSession' in navigator) {
+                    this.updateMediaSessionMetadata();
+                    navigator.mediaSession.playbackState = 'playing';
+                }
+            })
+            .catch(error => {
+                console.error("Error playing audio:", error);
+                this.isPlaying = false;
+                this.updatePlayPauseButton();
+            });
     }
+}
 
     pause() {
         this.audioElement.pause();
         this.isPlaying = false;
         this.currentTime = this.audioElement.currentTime; // Store the current playback position
         this.updatePlayPauseButton();
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'paused';
+        }
     }
 
     togglePlayPause() {
@@ -199,6 +213,7 @@ class AudioPlayer {
             this.currentTrackIndex++;
             this.isResuming = false;
             this.play();
+            this.updateMediaSessionMetadata();
         }
     }
 
@@ -206,11 +221,20 @@ class AudioPlayer {
         if (this.currentTrackIndex > 0) {
             this.currentTrackIndex--;
             this.play();
+            this.updateMediaSessionMetadata();
         }
     }
 
     setVolume(volume) {
         this.audioElement.volume = volume;
+        // Update system volume (if supported)
+        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            navigator.mediaSession.setPositionState({
+                duration: this.audioElement.duration,
+                playbackRate: this.audioElement.playbackRate,
+                position: this.audioElement.currentTime
+            });
+        }
     }
 
     seek(event) {
@@ -223,6 +247,15 @@ class AudioPlayer {
         const progress = (this.audioElement.currentTime / this.audioElement.duration) * 100;
         document.getElementById('progress-bar').style.width = `${progress}%`;
         document.getElementById('current-time').textContent = this.formatTime(this.audioElement.currentTime);
+
+         // Update media session position state
+         if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            navigator.mediaSession.setPositionState({
+                duration: this.audioElement.duration,
+                playbackRate: this.audioElement.playbackRate,
+                position: this.audioElement.currentTime
+            });
+        }
     }
 
     updateTotalTime() {
@@ -248,16 +281,16 @@ class AudioPlayer {
         queueContainer.innerHTML = '';
         filteredTracks.forEach((track, index) => {
             const trackElement = document.createElement('div');
-            trackElement.className = `bg-[#292938] p-4 rounded-xl flex items-center justify-between ${index === this.currentTrackIndex ? 'border-2 border-blue-500' : ''}`;
+            trackElement.className = `bg-[#001122] p-4 rounded-xl flex items-center justify-between ${index === this.currentTrackIndex ? 'border-2 border-[#00ff00]' : ''}`;
             trackElement.innerHTML = `
                 <div class="flex items-center space-x-4">
                     <img src="${track.image}" alt="Album art" class="w-12 h-12 object-cover rounded" data-image="${track.image}">
                     <div>
-                        <p class="font-medium">${track.name}</p>
-                        <p class="text-sm text-gray-400">${track.artist}</p>
+                        <p class="font-medium text-[#00ff00]">${track.name}</p>
+                        <p class="text-sm text-[#00ff00]/70">${track.artist}</p>
                     </div>
                 </div>
-                <button class="play-track-btn bg-blue-500 hover:bg-blue-600 rounded-full p-2" data-index="${index}">
+                <button class="play-track-btn bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2" data-index="${index}">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                     </svg>
@@ -265,12 +298,11 @@ class AudioPlayer {
             `;
             queueContainer.appendChild(trackElement);
             
-             // Add click event to track image
+            // Add click event to track image
             const imgElement = trackElement.querySelector('img');
             imgElement.addEventListener('click', () => {
                 showModal(track.image);
             });
-
         });
 
         document.querySelectorAll('.play-track-btn').forEach(button => {
@@ -287,8 +319,8 @@ class AudioPlayer {
         button.innerHTML = this.isPlaying
             ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
             : '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+        button.className = 'bg-[#00ff00] hover:bg-[#00ff00]/80 text-[#001122] rounded-full p-2 sm:p-3';
     }
-
     searchTracks(query) {
         if (query.trim() === '') {
             this.updateQueueDisplay();
@@ -302,9 +334,27 @@ class AudioPlayer {
 
         if (filteredTracks.length === 0) {
             const queueContainer = document.querySelector('.queue-container');
-            queueContainer.innerHTML = '<p class="text-center text-gray-400 mt-4">No matching tracks found</p>';
+            queueContainer.innerHTML = '<p class="text-center text-[#00ff00]/70 mt-4">No matching tracks found</p>';
         } else {
             this.updateQueueDisplay(filteredTracks);
+        }
+    }
+    updateMediaSessionMetadata() {
+        if ('mediaSession' in navigator) {
+            const currentTrack = this.queue[this.currentTrackIndex];
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: currentTrack.name,
+                artist: currentTrack.artist,
+                album: currentTrack.album || 'Unknown Album',
+                artwork: [
+                    { src: currentTrack.image, sizes: '96x96', type: 'image/png' },
+                    { src: currentTrack.image, sizes: '128x128', type: 'image/png' },
+                    { src: currentTrack.image, sizes: '192x192', type: 'image/png' },
+                    { src: currentTrack.image, sizes: '256x256', type: 'image/png' },
+                    { src: currentTrack.image, sizes: '384x384', type: 'image/png' },
+                    { src: currentTrack.image, sizes: '512x512', type: 'image/png' },
+                ]
+            });
         }
     }
 }
@@ -316,14 +366,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.body;
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        dropZone.classList.add('bg-blue-100', 'bg-opacity-50');
+        dropZone.classList.add('bg-[#00ff00]/10');
     });
     dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('bg-blue-100', 'bg-opacity-50');
+        dropZone.classList.remove('bg-[#00ff00]/10');
     });
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropZone.classList.remove('bg-blue-100', 'bg-opacity-50');
+        dropZone.classList.remove('bg-[#00ff00]/10');
         player.uploadSongs(e.dataTransfer.files);
     });
 });
