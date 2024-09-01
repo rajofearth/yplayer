@@ -48,22 +48,21 @@
             margin: auto;
             padding: 1rem;
         }
-
+    
         .queue-container {
             max-height: calc(100vh - 300px);
             overflow-y: auto;
-            padding-bottom: 1rem;
-            background-color: #002;
+            padding: 10px;
             border-radius: 8px;
             border: 1px solid #0f0;
         }
-
+        
         .queue-container::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         .queue-container::-webkit-scrollbar-thumb {
-            background-color: #4a5568;
+            background-color: #0f0;
             border-radius: 4px;
         }
 
@@ -74,7 +73,7 @@
         }
 
         .volume-slider {
-            --webkit-appearance: none;
+            -webkit-appearance: none;
             width: 80px;
             height: 4px;
             background: rgba(0, 255, 0, 0.2);
@@ -190,7 +189,7 @@
 <body>
     <div class="container">
         <header class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0">
-            <h1 class="text-xl sm:text-2xl font-bold">YPlayer</h1>
+            <h1 class="text-xl sm:text-2xl font-bold"><a href="https://github.com/rajofearth/yplayer">YPlayer</a></h1>
             <div class="flex items-center space-x-2 sm:space-x-4">
                 <input type="file" id="file-input" accept="audio/*" multiple class="hidden">
                 <label for="file-input" class="bg-[#0f0] hover:bg-[#0f0]/80 text-[#001] px-3 py-2 rounded cursor-pointer text-sm sm:text-base">

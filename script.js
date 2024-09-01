@@ -194,9 +194,10 @@ class AudioPlayer {
             } else {
                 // Start a new track or reset current time for the same track
                 this.audioElement.src = trackUrl;
-                    this.audioElement.currentTime = 0;
+                this.audioElement.currentTime = 0;
                 this.audioElement.currentTime = this.currentTime;
-
+                this.currentTime = 0;
+                
                 this.audioElement.play()
                     .then(() => {
                         this.isPlaying = true;
