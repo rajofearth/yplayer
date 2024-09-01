@@ -167,9 +167,8 @@ play() {
     if (this.queue.length > 0) {
         const currentTrack = this.queue[this.currentTrackIndex];
 
-        // Check if the audio is paused and the current track is already loaded
-        if (this.isPaused && this.audioElement.src === URL.createObjectURL(currentTrack.file)) {
-            // If paused, just resume playback
+        // Check if the audio is paused and resuming the current track
+        if (this.isPaused && this.audioElement.src === this.currentObjectURL) {
             this.audioElement.play()
                 .then(() => {
                     this.isPlaying = true;
@@ -177,11 +176,7 @@ play() {
                     this.updateNowPlaying();
                     this.updatePlayPauseButton();
                     this.updateQueueDisplay();
-
-                    if ('mediaSession' in navigator) {
-                        this.updateMediaSessionMetadata();
-                        navigator.mediaSession.playbackState = 'playing';
-                    }
+                    this.updateMediaSessionPlaybackState('playing');
                 })
                 .catch(error => {
                     console.error("Error resuming audio:", error);
@@ -189,11 +184,16 @@ play() {
                     this.updatePlayPauseButton();
                 });
         } else {
-            // If not paused, start a new track
-            this.audioElement.src = URL.createObjectURL(currentTrack.file);
+            // Clean up the previous Object URL if any
+            if (this.currentObjectURL) {
+                URL.revokeObjectURL(this.currentObjectURL);
+            }
+
+            // Create a new Object URL for the current track
+            this.currentObjectURL = URL.createObjectURL(currentTrack.file);
+            this.audioElement.src = this.currentObjectURL;
             this.audioElement.currentTime = 0;
-            
-            // Play the audio
+
             this.audioElement.play()
                 .then(() => {
                     this.isPlaying = true;
@@ -201,11 +201,7 @@ play() {
                     this.updateNowPlaying();
                     this.updatePlayPauseButton();
                     this.updateQueueDisplay();
-
-                    if ('mediaSession' in navigator) {
-                        this.updateMediaSessionMetadata();
-                        navigator.mediaSession.playbackState = 'playing';
-                    }
+                    this.updateMediaSessionPlaybackState('playing');
                 })
                 .catch(error => {
                     console.error("Error playing audio:", error);
@@ -216,43 +212,38 @@ play() {
     }
 }
 
-    pause() {
-        this.audioElement.pause();
-        this.isPlaying = false;
-        this.isPaused = true;
-        this.currentTime = this.audioElement.currentTime; // Store the current playback position
-        this.updatePlayPauseButton();
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = 'paused';
-        }
-    }
+pause() {
+    this.audioElement.pause();
+    this.isPlaying = false;
+    this.isPaused = true;
+    this.updatePlayPauseButton();
+    this.updateMediaSessionPlaybackState('paused');
+}
 
-    togglePlayPause() {
-        if (this.isPlaying) {
-            this.pause();
-        } else {
-            this.isResuming = true;
-            this.play();
-        }
+togglePlayPause() {
+    if (this.isPlaying) {
+        this.pause();
+    } else {
+        this.play();
     }
+}
 
-
-    playNext() {
-        if (this.currentTrackIndex < this.queue.length - 1) {
-            this.currentTrackIndex++;
-            this.isResuming = false;
-            this.play();
-            this.updateMediaSessionMetadata();
-        }
+playNext() {
+    if (this.currentTrackIndex < this.queue.length - 1) {
+        this.currentTrackIndex++;
+        this.isResuming = false;
+        this.play();
+        this.updateMediaSessionMetadata();
     }
+}
 
-    playPrevious() {
-        if (this.currentTrackIndex > 0) {
-            this.currentTrackIndex--;
-            this.play();
-            this.updateMediaSessionMetadata();
-        }
+playPrevious() {
+    if (this.currentTrackIndex > 0) {
+        this.currentTrackIndex--;
+        this.play();
+        this.updateMediaSessionMetadata();
     }
+}
 
     setVolume(volume) {
         this.audioElement.volume = volume;
