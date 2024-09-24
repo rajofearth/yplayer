@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Player</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Music Player</h1>
+      <input type="file" id="file-input" accept="audio/*" multiple>
+      <label for="file-input" class="upload-btn">
+        <i class="fas fa-upload"></i> Upload Music
+      </label>
+    </header>
+    <main>
+      <section id="library-view">
+        <h2>Library</h2>
+        <input type="text" id="search-input" placeholder="Search tracks...">
+        <ul id="library-list"></ul>
+      </section>
+      <section id="player-view">
+        <div id="now-playing">
+          <img id="album-art" src="path/to/default-album-art.png" alt="Album Art">
+          <div>
+            <h3 id="track-title">No track selected</h3>
+            <p id="track-artist"></p>
+          </div>
+        </div>
+        <div id="player-controls">
+          <button id="prev-button"><i class="fas fa-step-backward"></i></button>
+          <button id="play-pause-button"><i class="fas fa-play"></i></button>
+          <button id="next-button"><i class="fas fa-step-forward"></i></button>
+          <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1">
+          <button id="shuffle-button"><i class="fas fa-random"></i></button>
+        </div>
+        <div id="progress-bar-container">
+          <div id="progress-bar"></div>
+        </div>
+        <h2>Current Playlist</h2>
+        <ul id="playlist-view"></ul>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="../src/main.js"></script>
+</body>
+</html>

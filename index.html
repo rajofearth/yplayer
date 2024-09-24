@@ -85,7 +85,7 @@
             margin: auto;
             padding: 1rem;
         }
-    
+
         .queue-container {
             max-height: calc(100vh - 300px);
             overflow-y: auto;
@@ -213,7 +213,7 @@
 
         #upload-progress {
             position: fixed;
-            bottom: 10px;
+            top:20%;
             left: 50%;
             transform: translateX(-50%);
             background-color: var(--accent-color);
@@ -278,6 +278,46 @@
         input:checked + .slider:before {
             transform: translateX(26px);
         }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .control-btn:hover, .control-btn.active {
+            color: var(--accent-color);
+        }
+
+        .control-btn.repeat-one .fa-redo:before {
+            content: "\f01e";
+        }
+
+        .modal-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .track-info {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .modal-content {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+
+            .track-info {
+                margin-left: 1rem;
+                text-align: left;
+            }
+        }
     </style>
 </head>
 <body>
@@ -291,12 +331,12 @@
                 </label>
             </div>
             <div class="flex items-center space-x-2 sm:space-x-4">
-                <input type="file" id="file-input" accept="audio/*" multiple class="hidden">
-                <label for="file-input" class="bg-[var(--accent-color)] hover:bg-[var(--hover-color)] text-[var(--bg-color)] px-3 py-2 rounded cursor-pointer text-sm sm:text-base">
+                <input type="file" id="folder-input" webkitdirectory directory multiple style="display: none;">
+                <label for="folder-input" id="folder-label" class="bg-[var(--accent-color)] hover:bg-[var(--hover-color)] text-[var(--bg-color)] px-3 py-2 rounded cursor-pointer text-sm sm:text-base">
                     <svg class="w-5 h-5 sm:hidden" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <span class="hidden sm:inline">Add Tracks</span>
+                    <span class="hidden sm:inline">Select Folder</span>
                 </label>
                 <input type="text" id="search-input" placeholder="Search tracks" class="bg-[var(--bg-color)] text-[var(--text-color)] border border-[var(--accent-color)] px-3 py-2 rounded text-sm sm:text-base">
             </div>
@@ -306,11 +346,12 @@
             <section>
                 <h2 class="text-lg sm:text-xl font-semibold mb-4">Queue</h2>
                 <div class="queue-container space-y-2"></div>
+                <div id="upload-progress" class="hidden">Uploading...</div>
             </section>
         </main>
     </div>
 
-<div class="fixed bottom-0 left-0 right-0 bg-[var(--plyr-bg-color)] border-t border-[var(--accent-color)] p-4">
+<div class="fixed bottom-0 left-0 right-0 bg-[var(--bg-color)] border-t border-[var(--accent-color)] p-4">
         <div class="container max-w-full">
             <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">                <div class="flex items-center space-x-3">
                     <img id="now-playing-img" src="imgs/yplayer-icon-logo.png" alt="Album art" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg cursor-pointer">
@@ -330,22 +371,12 @@
                         <span id="total-time">0:00</span>
                     </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <button id="prev-btn" class="text-[var(--text-color)]/70 hover:text-[var(--text-color)]">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                        </svg>
-                    </button>
-                    <button id="play-pause-btn" class="bg-[var(--accent-color)] hover:bg-[var(--hover-color)] text-[var(--bg-color)] rounded-full p-2 sm:p-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                            </path></svg></button>
-                    <button id="next-btn" class="text-[var(--text-color)]/70 hover:text-[var(--text-color)]">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 19l7-7-7-7M6 5l7 7-7 7" />
-                        </svg>
-                    </button>
+                <div class="player-controls">
+                    <button id="prev-btn" class="control-btn"><i class="fas fa-step-backward"></i></button>
+                    <button id="play-pause-btn" class="control-btn"><i class="fas fa-play"></i></button>
+                    <button id="next-btn" class="control-btn"><i class="fas fa-step-forward"></i></button>
+                    <button id="shuffle-btn" class="control-btn"><i class="fas fa-random"></i></button>
+                    <button id="repeat-btn" class="control-btn"><i class="fas fa-redo"></i></button>
                 </div>
                 <div class="hidden sm:flex items-center space-x-1" id="vol">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-[var(--text-color)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -356,12 +387,16 @@
             </div>
         </div>
     </div>
-    <div id="upload-progress" class="hidden">Uploading...</div>
 
     <div id="album-art-modal" class="modal">
         <div class="modal-content">
             <button class="close-btn" onclick="hideModal()">&times;</button>
             <img id="album-art" src="imgs/yplayer-icon-logo.png" alt="Album Art" class="modal-img">
+            <div class="track-info">
+                <h3 id="modal-title"></h3>
+                <p id="modal-artist"></p>
+                <p id="modal-album"></p>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>

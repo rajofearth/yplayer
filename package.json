@@ -1,0 +1,13 @@
+{
+  "name": "music-player",
+  "version": "1.0.0",
+  "description": "A polished music player application",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "serve public"
+  },
+  "dependencies": {
+    "serve": "^13.0.2"
+  },
+  "type": "module"
+}

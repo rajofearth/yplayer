@@ -13,6 +13,8 @@ class AudioPlayer {
         this.currentTheme = localStorage.getItem('theme') || 'dark';
         this.updateThemeColors();
 
+        this.volume = parseFloat(localStorage.getItem('volume')) || 1;
+
         this.audioElement.addEventListener('ended', () => this.playNext());
         this.audioElement.addEventListener('timeupdate', () => this.updateProgressBar());
         this.audioElement.addEventListener('loadedmetadata', () => this.updateTotalTime());
@@ -28,6 +30,20 @@ class AudioPlayer {
             navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
             navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
         }
+
+        this.folderName = localStorage.getItem('selectedFolder') || 'Select Folder';
+        this.updateFolderLabel();
+
+        this.progressBarContainer = document.querySelector('.progress-container');
+        this.progressBar = document.getElementById('progress-bar');
+        this.isDragging = false;
+
+        this.setupProgressBarEvents();
+
+        this.isShuffled = false;
+        this.repeatMode = 'off'; // 'off', 'all', 'one'
+
+        this.setupRepeatShuffleButtons();
     }
 
     setupEventListeners() {
@@ -37,6 +53,7 @@ class AudioPlayer {
         const volumeControl = document.getElementById('volume-control');
         const progressBarContainer = document.getElementById('progress-bar').parentElement;
         const searchInput = document.getElementById('search-input');
+        const folderInput = document.getElementById('folder-input');
 
         if (playPauseBtn) playPauseBtn.addEventListener('click', () => this.togglePlayPause());
         if (nextBtn) nextBtn.addEventListener('click', () => this.playNext());
@@ -48,6 +65,7 @@ class AudioPlayer {
         }
         if (progressBarContainer) progressBarContainer.addEventListener('click', (e) => this.seek(e));
         if (searchInput) searchInput.addEventListener('input', (e) => this.searchTracks(e.target.value));
+        if (folderInput) folderInput.addEventListener('change', (e) => this.handleFolderSelection(e));
 
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -60,6 +78,15 @@ class AudioPlayer {
                 this.playPrevious();
             }
         });
+
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider) {
+            volumeSlider.value = this.volume * 100;
+            if (this.audioElement) {
+                this.audioElement.volume = this.volume; // Set initial volume without updating MediaSession
+            }
+            volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value / 100));
+        }
     }
     
     updateThemeColors() {
@@ -76,45 +103,61 @@ class AudioPlayer {
         this.hoverColor = hoverColor;
     }
 
+    handleFolderSelection(event) {
+        const files = event.target.files;
+        if (files.length > 0) {
+            this.folderName = files[0].webkitRelativePath.split('/')[0];
+            localStorage.setItem('selectedFolder', this.folderName);
+            this.updateFolderLabel();
+            this.uploadSongs(files);
+        }
+    }
+
+    updateFolderLabel() {
+        const folderLabel = document.getElementById('folder-label');
+        if (folderLabel) {
+            const labelText = folderLabel.querySelector('span');
+            if (labelText) {
+                labelText.textContent = this.folderName;
+            }
+        }
+    }
+
     uploadSongs(files) {
-        const fileArray = Array.from(files);
-        const totalFiles = fileArray.length;
+        const audioFiles = Array.from(files).filter(file => file.type.startsWith('audio/'));
+        const totalFiles = audioFiles.length;
     
         if (totalFiles > 0) {
             this.showUploadProgress();
         }
     
-        const promises = fileArray.map((file, index) => {
-            return new Promise((resolve, reject) => {
-                try {
-                    setTimeout(() => {
-                        this.addToQueue(file);
-                        this.updateUploadProgress(index + 1, totalFiles);
-                        resolve();
-                    }, 100);
-                } catch (error) {
-                    console.error('Error processing file:', error);
-                    reject(error);
-                }
-            });
-        });
-    
-        Promise.all(promises)
-            .then(() => {
+        let processedFiles = 0;
+        const processFile = (index) => {
+            if (index >= audioFiles.length) {
                 this.hideUploadProgress();
                 if (!this.songsDisplayed) {
                     this.updateQueueDisplay();
                     this.songsDisplayed = true;
-    
                     if (this.queue.length > 0) {
                         this.play();
                     }
                 }
-            })
-            .catch((error) => {
-                console.error('Error during upload process:', error);
-                this.hideUploadProgress();
+                return;
+            }
+    
+            const file = audioFiles[index];
+            this.addToQueue(file).then(() => {
+                processedFiles++;
+                this.updateUploadProgress(processedFiles, totalFiles);
+                this.updateQueueDisplay();
+                processFile(index + 1);
+            }).catch(error => {
+                console.error('Error processing file:', error);
+                processFile(index + 1);
             });
+        };
+    
+        processFile(0);
     }
     
     showUploadProgress() {
@@ -279,11 +322,16 @@ togglePlayPause() {
 
 
     playNext() {
-        if (this.currentTrackIndex < this.queue.length - 1) {
-            this.currentTrackIndex++;
-            this.isResuming = false;
+        if (this.repeatMode === 'one') {
+            this.audioElement.currentTime = 0;
             this.play();
-            this.updateMediaSessionMetadata();
+        } else {
+            this.currentTrackIndex = (this.currentTrackIndex + 1) % this.queue.length;
+            if (this.currentTrackIndex === 0 && this.repeatMode === 'off') {
+                this.pause();
+            } else {
+                this.play();
+            }
         }
     }
 
@@ -296,23 +344,18 @@ togglePlayPause() {
     }
 
     setVolume(volume) {
-        // Convert the volume to a float between 0 and 1
-        const volumeFloat = parseFloat(volume);
-        this.audioElement.volume = volumeFloat;
-        
-        // Update the volume slider value
-        const volumeControl = document.getElementById('volume-control');
-        if (volumeControl) {
-            volumeControl.value = volume;
-        }
-
-        // Update system volume (if supported)
-        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-            navigator.mediaSession.setPositionState({
-                duration: this.audioElement.duration,
-                playbackRate: this.audioElement.playbackRate,
-                position: this.audioElement.currentTime
-            });
+        if (this.audioElement) {
+            this.audioElement.volume = volume;
+            localStorage.setItem('volume', volume);
+            
+            // Only set position state if the audio is loaded and has a valid duration
+            if (!isNaN(this.audioElement.duration)) {
+                navigator.mediaSession.setPositionState({
+                    duration: this.audioElement.duration,
+                    playbackRate: this.audioElement.playbackRate,
+                    position: this.audioElement.currentTime
+                });
+            }
         }
     }
 
@@ -467,6 +510,94 @@ togglePlayPause() {
                 ]
             });
         }
+    }
+
+    setupProgressBarEvents() {
+        this.progressBarContainer.addEventListener('mousedown', this.startDrag.bind(this));
+        this.progressBarContainer.addEventListener('touchstart', this.startDrag.bind(this));
+        document.addEventListener('mousemove', this.drag.bind(this));
+        document.addEventListener('touchmove', this.drag.bind(this));
+        document.addEventListener('mouseup', this.endDrag.bind(this));
+        document.addEventListener('touchend', this.endDrag.bind(this));
+    }
+
+    startDrag(e) {
+        this.isDragging = true;
+        this.drag(e);
+    }
+
+    drag(e) {
+        if (!this.isDragging) return;
+        const rect = this.progressBarContainer.getBoundingClientRect();
+        const x = (e.clientX || e.touches[0].clientX) - rect.left;
+        const percent = Math.min(Math.max(x / rect.width, 0), 1);
+        this.progressBar.style.width = `${percent * 100}%`;
+        this.audioElement.currentTime = percent * this.audioElement.duration;
+    }
+
+    endDrag() {
+        this.isDragging = false;
+    }
+
+    setupRepeatShuffleButtons() {
+        const shuffleBtn = document.getElementById('shuffle-btn');
+        const repeatBtn = document.getElementById('repeat-btn');
+        
+        shuffleBtn.addEventListener('click', this.toggleShuffle.bind(this));
+        repeatBtn.addEventListener('click', this.toggleRepeat.bind(this));
+    }
+    
+    toggleShuffle() {
+        this.isShuffled = !this.isShuffled;
+        const shuffleBtn = document.getElementById('shuffle-btn');
+        shuffleBtn.classList.toggle('active', this.isShuffled);
+        shuffleBtn.setAttribute('title', this.isShuffled ? 'Shuffle: On' : 'Shuffle: Off');
+        
+        if (this.isShuffled) {
+            this.shuffleQueue();
+        } else {
+            this.unshuffleQueue();
+        }
+    }
+    
+    shuffleQueue() {
+        const currentTrack = this.queue[this.currentTrackIndex];
+        const remainingTracks = this.queue.slice(this.currentTrackIndex + 1);
+        for (let i = remainingTracks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
+        }
+        this.queue = [currentTrack, ...remainingTracks];
+        this.currentTrackIndex = 0;
+        this.updateQueueDisplay();
+    }
+    
+    unshuffleQueue() {
+        // Implement logic to restore original queue order
+    }
+    
+    toggleRepeat() {
+        const modes = ['off', 'all', 'one'];
+        const currentIndex = modes.indexOf(this.repeatMode);
+        this.repeatMode = modes[(currentIndex + 1) % modes.length];
+        const repeatBtn = document.getElementById('repeat-btn');
+        
+        repeatBtn.classList.toggle('active', this.repeatMode !== 'off');
+        repeatBtn.classList.toggle('repeat-one', this.repeatMode === 'one');
+        
+        let title;
+        switch (this.repeatMode) {
+            case 'off':
+                title = 'Repeat: Off';
+                break;
+            case 'all':
+                title = 'Repeat: All';
+                break;
+            case 'one':
+                title = 'Repeat: One';
+                break;
+        }
+        repeatBtn.setAttribute('title', title);
     }
 }
 
