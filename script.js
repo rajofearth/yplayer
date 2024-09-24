@@ -31,7 +31,8 @@ class AudioPlayer {
             navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
         }
 
-        this.folderName = localStorage.getItem('selectedFolder') || 'Select Folder';
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        this.folderName = localStorage.getItem('selectedFolder') || (this.isMobile ? 'Select Files' : 'Select Folder');
         this.updateFolderLabel();
 
         this.progressBarContainer = document.querySelector('.progress-container');
@@ -106,7 +107,11 @@ class AudioPlayer {
     handleFolderSelection(event) {
         const files = event.target.files;
         if (files.length > 0) {
-            this.folderName = files[0].webkitRelativePath.split('/')[0];
+            if (this.isMobile) {
+                this.folderName = `${files.length} file(s) selected`;
+            } else {
+                this.folderName = files[0].webkitRelativePath.split('/')[0];
+            }
             localStorage.setItem('selectedFolder', this.folderName);
             this.updateFolderLabel();
             this.uploadSongs(files);

@@ -319,6 +319,24 @@
             }
         }
     </style>
+    <script>
+        // Add this script to detect mobile devices
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const folderInput = document.getElementById('folder-input');
+            const folderLabel = document.getElementById('folder-label');
+
+            if (isMobile()) {
+                folderInput.removeAttribute('webkitdirectory');
+                folderInput.removeAttribute('directory');
+                folderInput.setAttribute('multiple', '');
+                folderLabel.querySelector('span').textContent = 'Select Files';
+            }
+        });
+    </script>
 </head>
 <body>
     <div class="container">
